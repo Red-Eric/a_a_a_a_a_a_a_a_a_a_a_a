@@ -22,6 +22,9 @@ from app.routes.rapport import route_rapport
 from fastapi.staticfiles import StaticFiles
 from app.routes.table import route_table
 from app.routes.produit import route_produit
+from app.routes.notification import ws_notification
+
+
 
 app = FastAPI(
     title="API systeme GHR",
@@ -42,6 +45,9 @@ app.add_middleware(
 app.include_router(route_auth.router, prefix="/api/auth", tags=["Authentification"])
 
 app.include_router(route_oauth_social.router, prefix="/api/auth", tags=["OAuth"])
+
+
+app.include_router(router=ws_notification.router, tags=["WebSocket Notifications"])
 
 app.include_router(
     route_superAdmin.router, 
@@ -82,7 +88,7 @@ app.include_router(
 app.include_router(
     route_reservation.router, 
     prefix="/api/reservation", 
-    tags=["Reservation"], 
+    tags=["Reservationsevniezjfizejfi"], 
     # dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(

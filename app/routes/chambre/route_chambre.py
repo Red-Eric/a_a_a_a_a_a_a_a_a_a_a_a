@@ -9,6 +9,8 @@ import os
 import json
 from uuid import uuid4
 from typing import Optional
+from app.websocket.notification_manager import notification_manager
+
 
 router = APIRouter()
 UPLOAD_DIR = "uploads/chambres"
@@ -81,15 +83,18 @@ async def ajouter_chambre(
         etat=EtatChambre.LIBRE,
         etablissement=etab
     )
+    
+    
+    await notification_manager.broadcast(
+        
+        event="chambre_create",
+        payload={"message" : f"Une chambre a ete ajouter"}
+    )
 
-    return JSONResponse(status_code=201, content={
-        "message": f"Chambre '{numero}' ajoutée avec succès",
-        "chambre": {
-            "id": chambre.id,
-            "numero": chambre.numero,
-            "photo_url": chambre.photo_url,
-        }
-    })
+    return {
+        "messgae" : "chambre ajouter avec succes",
+        "chambre" : chambre
+    }
 
 @router.put("/{id_chambre}")
 async def update_chambre(
@@ -162,6 +167,7 @@ async def update_chambre(
 
 @router.get("")
 async def get_all_chambres():
+    
     chambres = await Chambre.all()
     return {"message": "Toutes les chambres", "chambres": chambres}
 

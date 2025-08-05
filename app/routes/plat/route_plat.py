@@ -5,7 +5,7 @@ import os
 from uuid import uuid4
 import json
 from app.enum.type_plat import Type_plat
-
+from app.websocket.notification_manager import notification_manager
 
 UPLOAD_DIR = "uploads/plat"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -103,6 +103,12 @@ async def addPlatWithImage(
         etablissement_id=etablissement_id
     )
 
+    await notification_manager.broadcast(
+        
+        event="plat_create",
+        payload={"message" : f"Une plat aetet  a ete ajouter"}
+    )
+
     return {
         "message": "Plat créé avec succès avec image",
         "plat": {
@@ -180,6 +186,11 @@ async def editPlat(
     plat.prep_minute = prep_minute
 
     await plat.save()
+    await notification_manager.broadcast(
+        
+        event="plat_update",
+        payload={"message" : f"Une plat aetet  a ete modifier"}
+    )
 
     return {
         "message": "Plat modifié avec succès",
@@ -204,6 +215,11 @@ async def deletePlat(id_plat: int):
             print(f"Erreur suppression image : {e}")
 
     await plat.delete()
+    await notification_manager.broadcast(
+        
+        event="plat_delete",
+        payload={"message" : f"Une plat a ete supprimer"}
+    )
     return {"message": "Plat supprimé avec succès"}
 
 @router.delete("/etablissement/{etab_id}/{id_plat}")

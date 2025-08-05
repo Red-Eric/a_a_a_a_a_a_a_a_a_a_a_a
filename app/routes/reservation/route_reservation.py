@@ -22,6 +22,9 @@ class ReservationRead(ReservationCreate):
     class Config:
         orm_mode = True
 
+
+
+
 @router.post("")
 async def create_reservation(item: ReservationCreate):
     client_ = await Client.get_or_none(id=item.client_id)
@@ -108,8 +111,38 @@ async def update_reservation(reservation_id: int, item: ReservationCreate):
         "reservation" : reservation
     }
 
+@router.get("/status/{status_reservation}/{etab_id}")
+async def get_stats_by_status_and_etab(status_reservation: Status_Reservation, etab_id: int):
+    etab = await Etablissement.get_or_none(id=etab_id)
+    if not etab:
+        return {
+            "message" : "Etablissement introuvable"
+        }
+
+    chambres = await Chambre.filter(etablissement_id=etab_id).all()
+    chambre_map = {chambre.id: chambre for chambre in chambres}
+
+    chambre_ids = list(chambre_map.keys())
+
+    reservations = await Reservation.filter(
+        statut=status_reservation,
+        chambre_id__in=chambre_ids
+    )
+
+    prix_total = 0.0
+    for res in reservations:
+        chambre = chambre_map.get(res.chambre_id)
+        if chambre and chambre.tarif:
+            prix_total += float(chambre.tarif) * res.duree
+
+    return {
+        "message": f"{len(reservations)} réservation(s) avec statut '{status_reservation.value}' dans l’établissement {etab.nom}",
+        "prix_total": prix_total,
+        "nombres": len(reservations)
+    }
+
 @router.patch("/{reservation_id}")
-async def update_reservation(reservation_id: int, item : ReservationCreate, id_personnel : int = Body(...)):
+async def update_reservation_patch(reservation_id: int, item : ReservationCreate, id_personnel : int = Body(...)):
     reservation = await Reservation.get_or_none(id=reservation_id)
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
@@ -137,50 +170,45 @@ async def update_reservation(reservation_id: int, item : ReservationCreate, id_p
         for article in item.articles:
             prod_ = await Produit.get_or_none(nom=article.nom)
 
-            if not prod_:
-                raise HTTPException(status_code=404, detail=f"Produit '{article.nom}' introuvable")
+            
+            
+            if prod_:
+                prod_.quantite += article.quantite
+                await prod_.save()
 
-            # Remise en stock
-            prod_.quantite += article.quantite
-            await prod_.save()
+                await MouvementStock.create(
+                    produit=prod_,
+                    personnel=pers,
+                    quantite=article.quantite,
+                    type=Type_mouvement_stock.ENTRE,
+                    raison=f"Annulation de la commande du client {client_.first_name} {client_.last_name} {client_.phone}"
+                )
 
-            await MouvementStock.create(
-                produit=prod_,
-                personnel=pers,
-                quantite=article.quantite,
-                type=Type_mouvement_stock.ENTRE,
-                raison=f"Annulation de la commande du client {client_.first_name} {client_.last_name} {client_.phone}"
-            )
-
+            
     elif item.statut == Status_Reservation.CONFIRMER:
         for article in item.articles:
             prod_ = await Produit.get_or_none(nom=article.nom)
 
-            if not prod_:
-                raise HTTPException(status_code=404, detail=f"Produit '{article.nom}' introuvable")
+            if prod_:
 
-            if prod_.quantite < article.quantite:
-                raise HTTPException(status_code=400, detail=f"Stock insuffisant pour le produit {article.nom}")
+                if prod_.quantite < article.quantite:
+                    raise HTTPException(status_code=400, detail=f"Stock insuffisant pour le produit {article.nom}")
 
-            prod_.quantite -= article.quantite
-            await prod_.save()
+                prod_.quantite -= article.quantite
+                await prod_.save()
 
-            await MouvementStock.create(
-                produit=prod_,
-                personnel=pers,
-                quantite=article.quantite,
-                type=Type_mouvement_stock.SORTIE,
-                raison=f"Commande du client {client_.first_name} {client_.last_name} {client_.phone}"
-            )
+                await MouvementStock.create(
+                    produit=prod_,
+                    personnel=pers,
+                    quantite=article.quantite,
+                    type=Type_mouvement_stock.SORTIE,
+                    raison=f"Commande du client {client_.first_name} {client_.last_name} {client_.phone}"
+                )
 
     return {
         "message" : "Voici la reservation",
         "reservation" : reservation
     }
-
-
-
-
 
 
 @router.delete("/{reservation_id}")
@@ -190,7 +218,6 @@ async def delete_reservation(reservation_id: int):
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
     await reservation.delete()
     return {"message": "Réservation supprimée avec succès"}
-
 
 # ------------------------ Super Admin
 
@@ -244,7 +271,9 @@ async def get_reservations_by_etablissement(id_etab: int):
         "message" : f"voici la liste des reservation de l etablissement {etab.nom}",
         "reservations" : reservations
     }
+    
 
+#----------------------------------- Cliii
 
 @router.get("/client/{id_client}")
 async def get_reservations_by_client(id_client: int):
@@ -256,6 +285,4 @@ async def get_reservations_by_client(id_client: int):
         "message" : f"voici la liste du reservation du client {client.first_name} {client.last_name}",
         "reservations" : reservations
     }
-
-#---------------------- Check
-
+    
