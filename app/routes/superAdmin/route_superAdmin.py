@@ -7,7 +7,7 @@ router = APIRouter()
 
 @router.get("")
 async def getSuperAdminAll():
-    allSuper = await SuperAdmin.all()
+    allSuper = await SuperAdmin.all().order_by("-id")
     return{
         "message" : "Voici les superAdmin",
         "SuperAdmins" : allSuper

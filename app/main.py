@@ -23,6 +23,10 @@ from fastapi.staticfiles import StaticFiles
 from app.routes.table import route_table
 from app.routes.produit import route_produit
 from app.routes.notification import ws_notification
+from app.routes.notification import route_notification
+
+from app.routes.incident import route_incident
+from app.routes.equipement import route_equipement
 
 
 
@@ -68,6 +72,12 @@ app.include_router(
     # dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
+    route_notification.router, 
+    prefix="/api/notification", 
+    tags=["Notifications"], 
+    # dependencies=[Depends(AuthService.get_current_user)]
+)
+app.include_router(
     route_produit.router, 
     prefix="/api/produit", 
     tags=["Produits"], 
@@ -88,7 +98,7 @@ app.include_router(
 app.include_router(
     route_reservation.router, 
     prefix="/api/reservation", 
-    tags=["Reservationsevniezjfizejfi"], 
+    tags=["Reservations"], 
     # dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
@@ -138,6 +148,20 @@ app.include_router(
     route_avis.router, 
     prefix="/api/avis", 
     tags=["Avis"], 
+    # dependencies=[Depends(AuthService.get_current_user)]
+)
+
+app.include_router(
+    route_equipement.router, 
+    prefix="/api/equipement", 
+    tags=["Equipement"], 
+    # dependencies=[Depends(AuthService.get_current_user)]
+)
+
+app.include_router(
+    route_incident.router, 
+    prefix="/api/incident", 
+    tags=["Incidents"], 
     # dependencies=[Depends(AuthService.get_current_user)]
 )
 

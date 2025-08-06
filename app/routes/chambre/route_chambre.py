@@ -10,7 +10,7 @@ import json
 from uuid import uuid4
 from typing import Optional
 from app.websocket.notification_manager import notification_manager
-
+from app.models.notification import Notification
 
 router = APIRouter()
 UPLOAD_DIR = "uploads/chambres"
@@ -85,16 +85,26 @@ async def ajouter_chambre(
     )
     
     
-    await notification_manager.broadcast(
-        
-        event="chambre_create",
-        payload={"message" : f"Une chambre a ete ajouter"}
+    await Notification.create(
+    message=f"La chambre N°{chambre.numero} a été ajoutée.",
+    lu=False,
+    etablissement=chambre.etablissement
     )
+
+    await notification_manager.broadcast(
+        event="chambre_create",
+        payload={"message": f"La chambre N°{chambre.numero} a été ajoutée."}
+    )
+
+    
+    
+    
 
     return {
         "messgae" : "chambre ajouter avec succes",
         "chambre" : chambre
     }
+
 
 @router.put("/{id_chambre}")
 async def update_chambre(
@@ -154,6 +164,19 @@ async def update_chambre(
         chambre.photo_url = image_path
 
     await chambre.save()
+    
+    
+    await Notification.create(
+    message=f"La chambre N°{chambre.numero} a été mise à jour.",
+    lu=False,
+    etablissement=chambre.etablissement
+    )
+
+    await notification_manager.broadcast(
+        event="chambre_update",
+        payload={"message": f"La chambre N°{chambre.numero} a été mise à jour."}
+    )
+
 
     return JSONResponse(status_code=200, content={
         "message": f"Chambre {id_chambre} modifiée avec succès",
@@ -168,7 +191,7 @@ async def update_chambre(
 @router.get("")
 async def get_all_chambres():
     
-    chambres = await Chambre.all()
+    chambres = await Chambre.all().order_by("-id")
     return {"message": "Toutes les chambres", "chambres": chambres}
 
 
@@ -200,7 +223,7 @@ async def get_all_chambre_libre(id_: int):
     etab = await Etablissement.get_or_none(id=id_)
     if not etab:
         return JSONResponse(status_code=404, content={"message": "Établissement introuvable"})
-    libres = await Chambre.filter(etablissement_id=etab.id, etat=EtatChambre.LIBRE).all()
+    libres = await Chambre.filter(etablissement_id=etab.id, etat=EtatChambre.LIBRE).all().order_by("-id")
     return {"message": f"Chambres libres de {etab.nom}", "chambres": libres}
 
 
@@ -215,6 +238,25 @@ async def delete_chambre(id_chambre: int):
             os.remove(chambre.photo_url)
         except Exception as e:
             print(f"Erreur suppression image : {e}")
+            
+    num = chambre.numero
+    etab = await chambre.etablissement
+    
+    
+    await Notification.create(
+    message=f"La chambre N°{num} a été supprimée.",
+    lu=False,
+    etablissement=etab
+    )
+    
+    await notification_manager.broadcast(
+        event="chambre_delete",
+        payload={"message": f"La chambre N°{num} a été supprimée."}
+    )       
 
     await chambre.delete()
+    
+    
+
+    
     return {"message": "Chambre supprimée avec succès"}

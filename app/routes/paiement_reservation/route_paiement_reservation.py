@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.get("")
 async def getAllPaiement():
-    allPaiement = await Paiement_reservation.all()
+    allPaiement = await Paiement_reservation.all().order_by("-id")
     return {
         "message" : "Voici le nombre de paiement",
         "paiements" : allPaiement

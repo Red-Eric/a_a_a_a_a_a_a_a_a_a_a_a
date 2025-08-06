@@ -10,7 +10,7 @@ router =  APIRouter()
 
 @router.get("")
 async def getAllPlanning():
-    allPlanning = await PlanningEvent.all()
+    allPlanning = await PlanningEvent.all().order_by("-id")
     
     return {
         "message" : "Voici liste de tout les Planning",
@@ -25,7 +25,7 @@ async def getPlanningByID(id_etab):
             "message" : "Introuvable Etab"
         }
     
-    plannings = await PlanningEvent.filter(etablissement =  etab_).all()
+    plannings = await PlanningEvent.filter(etablissement =  etab_).all().order_by("-id")
     
     return {
         "message" : f"voici les planning de l etablissement {etab_.nom}",

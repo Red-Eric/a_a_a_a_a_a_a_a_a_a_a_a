@@ -19,9 +19,9 @@ async def addUser(user: User_Create):
         nom=user.nom,
         telephone=user.telephone
     )
-    return {"message": "Personnel enregistré", "id": clientToAdd.id}
+    return {"message": "Personnel enregistré", "id": personnelToAdd.id}
 
 @router.get("/")
 async def getAllUser():
-    personnel = await Personnel.all()
+    personnel = await Personnel.all().order_by("-id")
     return personnel 

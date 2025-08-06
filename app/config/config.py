@@ -42,7 +42,10 @@ TORTOISE_ORM = {
                        "app.models.table",
                        "app.models.favoris",
                        "app.models.mouvement_stock",
-                       "app.models.product"
+                       "app.models.product",
+                       "app.models.notification",
+                       "app.models.incident",
+                       "app.models.equipement",
                        ],
             "default_connection": "default",
         }

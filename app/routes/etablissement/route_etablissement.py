@@ -77,7 +77,7 @@ async def addEtablissement(
 @router.get("/recent/{days_}")
 async def getRecentEtablissements(days_ : int):
     thirty_days_ago = datetime.now() - timedelta(days=days_)
-    etabs = await Etablissement.filter(created_at__gte=thirty_days_ago).all()
+    etabs = await Etablissement.filter(created_at__gte=thirty_days_ago).all().order_by("-id")
     count = await Etablissement.filter(created_at__gte=thirty_days_ago).count()
 
     return {
@@ -183,7 +183,7 @@ async def editEtablissement(
 
 @router.get("")
 async def getAllEtablissement():
-    allEtab = await Etablissement.all()
+    allEtab = await Etablissement.all().order_by("-id")
     return {
         "message" : "Voici la liste de Etablissement",
         "etablissements" : allEtab

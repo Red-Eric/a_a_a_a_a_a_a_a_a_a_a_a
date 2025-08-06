@@ -34,13 +34,13 @@ async def add_user(client: Client_Create):
 
 @router.get("")
 async def get_all_users():
-    clients = await Client.all()
+    clients = await Client.all().order_by("-id")
     return clients
 
 @router.get("/recent/{days_}")
 async def get_recent_clients(days_ : int):
     thirty_days_ago = datetime.now() - timedelta(days=days_)
-    clients = await Client.filter(created_at__gte=thirty_days_ago).all()
+    clients = await Client.filter(created_at__gte=thirty_days_ago).all().order_by("-id")
     count = await Client.filter(created_at__gte=thirty_days_ago).count()
 
     return {

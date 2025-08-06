@@ -6,6 +6,8 @@ from uuid import uuid4
 import json
 from app.enum.type_plat import Type_plat
 from app.websocket.notification_manager import notification_manager
+from app.models.notification import Notification
+
 
 UPLOAD_DIR = "uploads/plat"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -15,7 +17,7 @@ router = APIRouter()
 
 @router.get("/etablissement/{etablissement_id}")
 async def getAllFood(etablissement_id: int):
-    plats = await Plat.filter(etablissement_id=etablissement_id).all()
+    plats = await Plat.filter(etablissement_id=etablissement_id).all().order_by("-id")
     result = []
     for plat in plats:
         result.append({
@@ -103,11 +105,17 @@ async def addPlatWithImage(
         etablissement_id=etablissement_id
     )
 
-    await notification_manager.broadcast(
-        
-        event="plat_create",
-        payload={"message" : f"Une plat aetet  a ete ajouter"}
+    await Notification.create(
+    message=f"Le plat « {plat.libelle} » a été ajouté.",
+    lu=False,
+    etablissement= await plat.etablissement
     )
+
+    await notification_manager.broadcast(
+        event="plat_create",
+        payload={"message": f"Le plat « {plat.libelle} » a été ajouté."}
+    )
+
 
     return {
         "message": "Plat créé avec succès avec image",
@@ -186,10 +194,17 @@ async def editPlat(
     plat.prep_minute = prep_minute
 
     await plat.save()
+    
+    
+    await Notification.create(
+    message=f"Le plat « {plat.libelle} » a été mis a jour.",
+    lu=False,
+    etablissement= await plat.etablissement
+    )
+
     await notification_manager.broadcast(
-        
         event="plat_update",
-        payload={"message" : f"Une plat aetet  a ete modifier"}
+        payload={"message": f"Le plat « {plat.libelle} » a été mis a jour."}
     )
 
     return {
@@ -214,12 +229,19 @@ async def deletePlat(id_plat: int):
         except Exception as e:
             print(f"Erreur suppression image : {e}")
 
-    await plat.delete()
-    await notification_manager.broadcast(
-        
-        event="plat_delete",
-        payload={"message" : f"Une plat a ete supprimer"}
+    
+    await Notification.create(
+    message=f"Le plat « {plat.libelle} » a été effacer.",
+    lu=False,
+    etablissement= await plat.etablissement
     )
+
+    await notification_manager.broadcast(
+        event="plat_delete",
+        payload={"message": f"Le plat « {plat.libelle} » a été ajouté."}
+    )
+    await plat.delete()
+    
     return {"message": "Plat supprimé avec succès"}
 
 @router.delete("/etablissement/{etab_id}/{id_plat}")

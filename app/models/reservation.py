@@ -39,7 +39,7 @@ class Reservation(Model):
         related_name="reservations",
         source_field="chambre_id",
         null=True,
-        on_delete=fields.SET_NULL
+        on_delete=fields.CASCADE
     )
     
     

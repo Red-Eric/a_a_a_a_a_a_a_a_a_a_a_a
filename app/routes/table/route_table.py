@@ -10,7 +10,7 @@ router = APIRouter()
 
 @router.get("")
 async def getAllTable():
-    all_ = await Table.all()
+    all_ = await Table.all().order_by("-id")
     return {
         "message" : "Voici la liste de tout les table dans la DB",
         "tables" : all_

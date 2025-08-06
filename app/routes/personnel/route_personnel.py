@@ -9,7 +9,7 @@ router = APIRouter()
 
 @router.get("")
 async def getAllPersonnel():
-    allPersonnel = await Personnel.all()
+    allPersonnel = await Personnel.all().order_by("-id")
     return {
         "message" : "Liste de personnel",
         "personnels" : allPersonnel

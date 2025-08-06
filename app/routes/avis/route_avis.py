@@ -10,7 +10,7 @@ router = APIRouter()
 
 @router.get("")
 async def getByEtablissement():
-    avis = await Avis.all()
+    avis = await Avis.all().order_by("-id")
     return {
         "message" : "Voici les avis",
         "avis" : avis

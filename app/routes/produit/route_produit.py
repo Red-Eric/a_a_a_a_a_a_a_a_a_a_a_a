@@ -10,7 +10,7 @@ router = APIRouter()
 
 @router.get("")
 async def getAllProduct():
-    all_ = await Produit.all()
+    all_ = await Produit.all().order_by("-id")
     return {
         "message" : "VOici lal lise",
         "produits" : all_
@@ -24,7 +24,7 @@ async def getByEtab(id_etab : int):
             "message" : "Etablissement inexistante"
         }
     
-    all_ByEtab = await Produit.filter(etablissement = etab_).all()
+    all_ByEtab = await Produit.filter(etablissement = etab_).all().order_by("-id")
     
     return {
         "message" : "voici la liste de",

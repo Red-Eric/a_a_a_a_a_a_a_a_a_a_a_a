@@ -13,6 +13,9 @@ from app.models.product import Produit
 from app.models.personnel import Personnel
 from app.enum.type_mouvement_stock import Type_mouvement_stock
 from app.enum.status_reservation import Status_Reservation
+from app.models.notification import Notification
+from app.websocket.notification_manager import notification_manager
+
 
 router = APIRouter()
 
@@ -23,15 +26,13 @@ class ReservationRead(ReservationCreate):
         orm_mode = True
 
 
-
-
 @router.post("")
 async def create_reservation(item: ReservationCreate):
     client_ = await Client.get_or_none(id=item.client_id)
     if not client_:
         return {"message": "Client 404"}
 
-    chambre_ = await Chambre.get_or_none(id=item.chambre_id)
+    chambre_ = await Chambre.get_or_none(id=item.chambre_id).prefetch_related("etablissement")
     if not chambre_:
         return {"message": "Chambre 404"}
 
@@ -51,6 +52,17 @@ async def create_reservation(item: ReservationCreate):
             arhee=item.arhee.dict() if item.arhee else {}
         )
 
+        await Notification.create(
+            message=f"La réservation « {reservation.id} » a été ajoutée.",
+            lu=False,
+            etablissement=chambre_.etablissement
+        )
+
+    await notification_manager.broadcast(
+        event="reservation",
+        payload={"message": f"La réservation « {reservation.id} » a été ajoutée."}
+    )
+
     return {
         "message": "Réservation créée avec succès",
         "reservation_id": reservation.id
@@ -58,9 +70,10 @@ async def create_reservation(item: ReservationCreate):
 
 
 
+
 @router.get("")
 async def list_reservations():
-    reservations = await Reservation.all()
+    reservations = await Reservation.all().order_by("-id")
     return {
         "message" : "voici la liste des reser",
         "reservations" : reservations
@@ -79,7 +92,6 @@ async def get_reservation(reservation_id: int):
         "reservations" : reservation
     }
 
-
 @router.put("/{reservation_id}")
 async def update_reservation(reservation_id: int, item: ReservationCreate):
     reservation = await Reservation.get_or_none(id=reservation_id)
@@ -90,26 +102,42 @@ async def update_reservation(reservation_id: int, item: ReservationCreate):
     if not client_:
         raise HTTPException(status_code=404, detail="Client non trouvé")
 
-    chambre_ = await Chambre.get_or_none(id=item.chambre_id)
+    chambre_ = await Chambre.get_or_none(id=item.chambre_id).prefetch_related("etablissement")
     if not chambre_:
         raise HTTPException(status_code=404, detail="Chambre non trouvée")
 
+    # Mise à jour manuelle des champs
+    reservation.date_arrivee = item.date_arrivee
+    reservation.date_depart = item.date_depart
+    reservation.duree = item.duree
+    reservation.statut = item.statut
+    reservation.nbr_adultes = item.nbr_adultes
+    reservation.nbr_enfants = item.nbr_enfants
+    reservation.mode_checkin = item.mode_checkin
+    reservation.code_checkin = item.code_checkin
+    reservation.client_id = item.client_id
+    reservation.chambre_id = item.chambre_id
+    reservation.articles = [article.dict() for article in item.articles] if item.articles else []
+    reservation.arhee = item.arhee.dict() if item.arhee else {}
 
-
-    update_data = item.dict()
-    update_data["articles"] = [article.dict() for article in item.articles]
-    update_data["arhee"] = item.arhee.dict()
-
-    await reservation.update_from_dict(update_data)
-    
     await reservation.save()
-    
-    
+
+    await Notification.create(
+        message=f"La réservation « {reservation.id} » a été modifiée.",
+        lu=False,
+        etablissement=chambre_.etablissement
+    )
+
+    await notification_manager.broadcast(
+        event="reservation_update",
+        payload={"message": f"La réservation « {reservation.id} » a été modifiée."}
+    )
 
     return {
-        "message" : "Voici la reservation",
-        "reservation" : reservation
+        "message": "Réservation mise à jour avec succès",
+        "reservation": await reservation.values()
     }
+
 
 @router.get("/status/{status_reservation}/{etab_id}")
 async def get_stats_by_status_and_etab(status_reservation: Status_Reservation, etab_id: int):
@@ -141,8 +169,13 @@ async def get_stats_by_status_and_etab(status_reservation: Status_Reservation, e
         "nombres": len(reservations)
     }
 
+
 @router.patch("/{reservation_id}")
-async def update_reservation_patch(reservation_id: int, item : ReservationCreate, id_personnel : int = Body(...)):
+async def update_reservation_patch(
+    reservation_id: int,
+    item: ReservationCreate,
+    id_personnel: int = Body(...)
+):
     reservation = await Reservation.get_or_none(id=reservation_id)
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
@@ -151,73 +184,105 @@ async def update_reservation_patch(reservation_id: int, item : ReservationCreate
     if not client_:
         raise HTTPException(status_code=404, detail="Client non trouvé")
 
-    chambre_ = await Chambre.get_or_none(id=item.chambre_id)
+    chambre_ = await Chambre.get_or_none(id=item.chambre_id).prefetch_related("etablissement")
     if not chambre_:
         raise HTTPException(status_code=404, detail="Chambre non trouvée")
 
-
     pers = await Personnel.get_or_none(id=id_personnel)
     if not pers:
-        raise HTTPException(status_code=404, detail="personnel non trouvé")
-
+        raise HTTPException(status_code=404, detail="Personnel non trouvé")
 
     statut_initial = reservation.statut
 
+    # Mise à jour du statut uniquement
     reservation.statut = item.statut
     await reservation.save()
 
-    if statut_initial == Status_Reservation.CONFIRMER and item.statut != Status_Reservation.CONFIRMER:
-        for article in item.articles:
-            prod_ = await Produit.get_or_none(nom=article.nom)
+    if item.articles:
+        if statut_initial == Status_Reservation.CONFIRMER and item.statut != Status_Reservation.CONFIRMER:
+            # Retour stock (annulation)
+            for article in item.articles:
+                prod_ = await Produit.get_or_none(nom=article.nom)
+                if prod_:
+                    prod_.quantite += article.quantite
+                    await prod_.save()
 
-            
-            
-            if prod_:
-                prod_.quantite += article.quantite
-                await prod_.save()
+                    await MouvementStock.create(
+                        produit=prod_,
+                        personnel=pers,
+                        quantite=article.quantite,
+                        type=Type_mouvement_stock.ENTRE,
+                        raison=f"Annulation de la commande du client {client_.first_name or ''} {client_.last_name or ''} {client_.phone or ''}"
+                    )
 
-                await MouvementStock.create(
-                    produit=prod_,
-                    personnel=pers,
-                    quantite=article.quantite,
-                    type=Type_mouvement_stock.ENTRE,
-                    raison=f"Annulation de la commande du client {client_.first_name} {client_.last_name} {client_.phone}"
-                )
+        elif item.statut == Status_Reservation.CONFIRMER:
+            # Sortie stock (confirmation)
+            for article in item.articles:
+                prod_ = await Produit.get_or_none(nom=article.nom)
+                if prod_:
+                    if prod_.quantite < article.quantite:
+                        raise HTTPException(status_code=400, detail=f"Stock insuffisant pour le produit {article.nom}")
 
-            
-    elif item.statut == Status_Reservation.CONFIRMER:
-        for article in item.articles:
-            prod_ = await Produit.get_or_none(nom=article.nom)
+                    prod_.quantite -= article.quantite
+                    await prod_.save()
 
-            if prod_:
+                    await MouvementStock.create(
+                        produit=prod_,
+                        personnel=pers,
+                        quantite=article.quantite,
+                        type=Type_mouvement_stock.SORTIE,
+                        raison=f"Commande du client {client_.first_name or ''} {client_.last_name or ''} {client_.phone or ''}"
+                    )
 
-                if prod_.quantite < article.quantite:
-                    raise HTTPException(status_code=400, detail=f"Stock insuffisant pour le produit {article.nom}")
+    # ✅ Notification BD
+    await Notification.create(
+        message=f"Le statut de la réservation « {reservation.id} » a été modifié à « {item.statut.value} ».",
+        lu=False,
+        etablissement=chambre_.etablissement
+    )
 
-                prod_.quantite -= article.quantite
-                await prod_.save()
-
-                await MouvementStock.create(
-                    produit=prod_,
-                    personnel=pers,
-                    quantite=article.quantite,
-                    type=Type_mouvement_stock.SORTIE,
-                    raison=f"Commande du client {client_.first_name} {client_.last_name} {client_.phone}"
-                )
+    # ✅ Notification WebSocket
+    await notification_manager.broadcast(
+        event="reservation_patch",
+        payload={"message": f"Le statut de la réservation « {reservation.id} » a été modifié à « {item.statut.value} »."}
+    )
 
     return {
-        "message" : "Voici la reservation",
-        "reservation" : reservation
+        "message": "Statut de la réservation mis à jour avec succès",
+        "reservation": await reservation.values()
     }
 
 
 @router.delete("/{reservation_id}")
 async def delete_reservation(reservation_id: int):
-    reservation = await Reservation.get_or_none(id=reservation_id)
+    reservation = await Reservation.get_or_none(id=reservation_id).prefetch_related("chambre__etablissement")
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
+
+    # On récupère l'établissement via la chambre liée
+    etablissement = None
+    if reservation.chambre and reservation.chambre.etablissement:
+        etablissement = reservation.chambre.etablissement
+
+    # Supprimer la réservation
     await reservation.delete()
+
+    # ✅ Créer une notification si l'établissement est trouvé
+    if etablissement:
+        await Notification.create(
+            message=f"La réservation « {reservation_id} » a été supprimée.",
+            lu=False,
+            etablissement=etablissement
+        )
+
+        # ✅ Émettre un message WebSocket
+        await notification_manager.broadcast(
+            event="reservation_delete",
+            payload={"message": f"La réservation « {reservation_id} » a été supprimée."}
+        )
+
     return {"message": "Réservation supprimée avec succès"}
+
 
 # ------------------------ Super Admin
 
