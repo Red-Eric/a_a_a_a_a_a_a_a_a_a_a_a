@@ -40,3 +40,17 @@ async def addIncident(item : IncidentCreate):
         "message" : "Incident added",
         "return" : inc
     }
+
+@router.delete("/{id_}")
+async def deleteIncident(id_ : int):
+    inc = await Incident.get_or_none(id = id_)
+    if not inc:
+        return {
+            "message" : "Introuvable inc"
+        }
+    
+    await inc.delete()
+    
+    return {
+        "message" : "Incident effacer avec succes"
+    }

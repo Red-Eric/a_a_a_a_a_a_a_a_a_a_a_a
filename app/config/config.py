@@ -46,6 +46,7 @@ TORTOISE_ORM = {
                        "app.models.notification",
                        "app.models.incident",
                        "app.models.equipement",
+                       "app.models.favori",
                        ],
             "default_connection": "default",
         }

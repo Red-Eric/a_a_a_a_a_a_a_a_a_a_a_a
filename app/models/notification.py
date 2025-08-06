@@ -4,7 +4,7 @@ from tortoise import fields
 class Notification(Model):
     id = fields.IntField(pk = True)
     
-    message = fields.CharField(max_length=50)
+    message = fields.CharField(max_length=255)
     
     lu = fields.BooleanField()
     

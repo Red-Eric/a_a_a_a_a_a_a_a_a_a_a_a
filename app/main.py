@@ -2,7 +2,6 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.config import TORTOISE_ORM
 from tortoise.contrib.fastapi import register_tortoise
-
 from app.routes.client import route_client
 from app.routes.etablissement import route_etablissement
 from app.routes.chambre import route_chambre
@@ -24,10 +23,9 @@ from app.routes.table import route_table
 from app.routes.produit import route_produit
 from app.routes.notification import ws_notification
 from app.routes.notification import route_notification
-
 from app.routes.incident import route_incident
 from app.routes.equipement import route_equipement
-
+from app.routes.favori import route_favori
 
 
 app = FastAPI(
@@ -148,6 +146,13 @@ app.include_router(
     route_avis.router, 
     prefix="/api/avis", 
     tags=["Avis"], 
+    # dependencies=[Depends(AuthService.get_current_user)]
+)
+
+app.include_router(
+    route_favori.router, 
+    prefix="/api/favori", 
+    tags=["Favoris"], 
     # dependencies=[Depends(AuthService.get_current_user)]
 )
 

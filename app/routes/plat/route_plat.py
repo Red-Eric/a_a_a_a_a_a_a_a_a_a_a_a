@@ -42,6 +42,20 @@ async def getAllFood(etablissement_id: int):
     }
 
 
+@router.get("/{plat_id}")
+async def getByID(plat_id: int):
+    plat = await Plat.get_or_none(id = plat_id)
+    
+    if not plat:
+        return {
+            "message" : "plat introuvable"
+        }
+    
+    return {
+        "message" : f"voici le plat {plat.libelle}",
+        "plat" : plat
+    }
+
 @router.post("")
 async def addPlatWithImage(
     libelle: str = Form(...),

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from app.models.avis import Avis
-from app.schemas.avis_create import AvisCreate
+from app.models.favori import Favori
+from app.schemas.favori_create import FavoriCreate
 from app.models.etablissement import Etablissement
 from app.models.client import Client
 from app.models.chambre import Chambre
@@ -9,48 +9,43 @@ from app.models.plat import Plat
 router = APIRouter()
 
 @router.get("")
-async def getAllAvis():
-    avis = await Avis.all().order_by("-id")
+async def getByEtablissement():
+    favoriToADD = await Favori.all().order_by("-id")
     return {
-        "message" : "Voici les avis",
-        "avis" : avis
+        "message" : "Voici les Favori",
+        "favoris" : favoriToADD
     }
-
-
-
-# @router.get("/etablissement/{etab_id}")
-# async def getAllAvis(etab_id : int):
-#     etab = await Etablissement.get_or_none(id = etab_id)
     
-#     if not etab:
-#         return {
-#             "message" : "etablissement introuvable"
-#         }
-    
-    
-#     avis = await Avis.filter(etablissement = etab).all().order_by("-id")
-    
-#     return {
-#         "message" : "Voici les avis",
-#         "avis" : avis
-#     }
-    
-
-    
-@router.delete("/{id_}")
-async def deleteAvis(id_ : int):
-    avisToDel = await Avis.get_or_none(id = id_)
-    if not avisToDel:
+@router.get("/client/{id_cli}")
+async def getByClient(id_cli : int):
+    cli = await Client.get_or_none(id = id_cli)
+    if not cli:
         return {
-            "message" : "Avis Introuvable"
-        }        
-    await avisToDel.delete()
+            "message" : "client introuvable"
+        }
+    
+    favoris = await Favori.filter(client=cli).order_by("-id").all()
+    
     return {
-        "message" : "Avis suprrimer avec succes"
+        "message" : "Voici les favori du client",
+        "favoris" : favoris
+    }
+    
+        
+@router.delete("/{id_}")
+async def deleteFavori(id_ : int):
+    FavoriToDel = await Favori.get_or_none(id = id_)
+    if not FavoriToDel:
+        return {
+            "message" : "Favori Introuvable"
+        }        
+    await FavoriToDel.delete()
+    return {
+        "message" : "Favori suprrimer avec succes"
     }
 
 @router.post("")
-async def addAvis(item : AvisCreate):
+async def addFavori(item : FavoriCreate):
     client_ = await Client.get_or_none(id = item.client_id)
     plat_ = None
     etab_ = None
@@ -81,18 +76,15 @@ async def addAvis(item : AvisCreate):
                 "message" : "plat non trouver"
             }
     
-    avis_ = await Avis.create(
+    Favori_ = await Favori.create(
         client_id = item.client_id,
-        note = item.note,
-        comment = item.comment,
-        
         plat = plat_,
         chambre = chambre_,
         etablissement = etab_
     )
     
     return {
-        "message" : "Avis Ajouter",
-        "avis" :avis_
+        "message" : "Favori Ajouter",
+        "favori" :Favori_
     }
     
