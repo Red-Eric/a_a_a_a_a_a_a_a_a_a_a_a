@@ -31,6 +31,7 @@ class Favori(Model):
         null=True
     )
 
+
     class Meta:
         table = "favori"
         unique_together = [
