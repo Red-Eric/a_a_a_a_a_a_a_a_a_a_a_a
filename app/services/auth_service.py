@@ -24,8 +24,8 @@ load_dotenv()
 # Configuration JWT
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 360
-REFRESH_TOKEN_EXPIRE_DAYS = 7
+ACCESS_TOKEN_EXPIRE_MINUTES = 99999999
+REFRESH_TOKEN_EXPIRE_DAYS = 9999
 RESET_TOKEN_EXPIRE_HOURS = 1
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
