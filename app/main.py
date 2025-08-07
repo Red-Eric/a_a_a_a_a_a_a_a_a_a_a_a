@@ -26,7 +26,7 @@ from app.routes.notification import route_notification
 from app.routes.incident import route_incident
 from app.routes.equipement import route_equipement
 from app.routes.favori import route_favori
-
+from app.routes.intervention import route_intervention
 
 app = FastAPI(
     title="API systeme GHR",
@@ -167,6 +167,12 @@ app.include_router(
     route_incident.router, 
     prefix="/api/incident", 
     tags=["Incidents"], 
+    # dependencies=[Depends(AuthService.get_current_user)]
+)
+app.include_router(
+    route_intervention.router, 
+    prefix="/api/intervention", 
+    tags=["Interventions"], 
     # dependencies=[Depends(AuthService.get_current_user)]
 )
 
