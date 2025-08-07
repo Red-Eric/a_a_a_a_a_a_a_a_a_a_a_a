@@ -18,27 +18,27 @@ router = APIRouter()
 @router.get("/etablissement/{etablissement_id}")
 async def getAllFood(etablissement_id: int):
     plats = await Plat.filter(etablissement_id=etablissement_id).all().order_by("-id")
-    result = []
-    for plat in plats:
-        result.append({
-            "id": plat.id,
-            "etablissement_id": etablissement_id,
-            "libelle": plat.libelle,
-            "type_": plat.type,
-            "image": f"uploads/plat/{os.path.basename(plat.image_url)}" if plat.image_url else None,
-            "note": plat.note,
-            "prix": plat.prix,
-            "ingredients": plat.ingredients,
-            "tags": plat.tags,
-            "disponible": plat.disponible,
-            "calories": plat.calories,
-            "prep_minute": plat.prep_minute,
-            "description" : plat.description
-        })
+    # result = []
+    # for plat in plats:
+    #     result.append({
+    #         "id": plat.id,
+    #         "etablissement_id": etablissement_id,
+    #         "libelle": plat.libelle,
+    #         "type_": plat.type,
+    #         "image_url": f"uploads/plat/{os.path.basename(plat.image_url)}" if plat.image_url else None,
+    #         "note": plat.note,
+    #         "prix": plat.prix,
+    #         "ingredients": plat.ingredients,
+    #         "tags": plat.tags,
+    #         "disponible": plat.disponible,
+    #         "calories": plat.calories,
+    #         "prep_minute": plat.prep_minute,
+    #         "description" : plat.description
+    #     })
 
     return {
         "message": "Voici la liste des plats",
-        "plats": result
+        "plats": plats
     }
 
 

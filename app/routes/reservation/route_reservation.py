@@ -59,7 +59,7 @@ async def create_reservation(item: ReservationCreate):
         )
 
     await notification_manager.broadcast(
-        event="reservation",
+        event="reservation_create",
         payload={"message": f"La réservation « {reservation.id} » a été ajoutée."}
     )
 

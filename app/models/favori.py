@@ -6,7 +6,7 @@ class Favori(Model):
 
     client = fields.ForeignKeyField(
         "models.Client",
-        related_name="favoris",  # ✅ nom unique ici
+        related_name="favoris",  # ✅ 
         on_delete=fields.CASCADE,
     )
 

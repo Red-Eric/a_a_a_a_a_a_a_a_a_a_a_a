@@ -16,20 +16,34 @@ async def getByEtablissement():
         "favoris" : favoriToADD
     }
     
-@router.get("/client/{id_cli}")
-async def getByClient(id_cli : int):
-    cli = await Client.get_or_none(id = id_cli)
+@router.get("/chambre/client/{id_cli}")
+async def get_chambres_favoris_by_client(id_cli: int):
+    cli = await Client.get_or_none(id=id_cli)
     if not cli:
-        return {
-            "message" : "client introuvable"
-        }
-    
-    favoris = await Favori.filter(client=cli).order_by("-id").all()
+        return {"message": "Client introuvable"}
+
+    favoris = await Favori.filter(client=cli).exclude(chambre=None).order_by("-id").prefetch_related("chambre")
     
     return {
-        "message" : "Voici les favori du client",
-        "favoris" : favoris
+        "message": "Voici les favoris chambre du client",
+        "favoris": favoris
     }
+
+
+@router.get("/plat/client/{id_cli}")
+async def get_plats_favoris_by_client(id_cli: int):
+    cli = await Client.get_or_none(id=id_cli)
+    if not cli:
+        return {"message": "Client introuvable"}
+
+    favoris = await Favori.filter(client=cli).exclude(plat=None).order_by("-id").prefetch_related("plat")
+
+    return {
+        "message": "Voici les favoris plat du client",
+        "favoris": favoris
+    }
+
+
     
         
 @router.delete("/{id_}")

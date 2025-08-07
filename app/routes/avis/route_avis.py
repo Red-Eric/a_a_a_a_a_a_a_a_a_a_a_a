@@ -18,22 +18,54 @@ async def getAllAvis():
 
 
 
-# @router.get("/etablissement/{etab_id}")
-# async def getAllAvis(etab_id : int):
-#     etab = await Etablissement.get_or_none(id = etab_id)
+@router.get("/etablissement/{etab_id}")
+async def getAvisByEtablissement(etab_id : int):
+    etab = await Etablissement.get_or_none(id = etab_id)
     
-#     if not etab:
-#         return {
-#             "message" : "etablissement introuvable"
-#         }
+    if not etab:
+        return {
+            "message" : "etablissement introuvable"
+        }
     
     
-#     avis = await Avis.filter(etablissement = etab).all().order_by("-id")
+    avis = await Avis.filter(etablissement = etab).all().order_by("-id")
     
-#     return {
-#         "message" : "Voici les avis",
-#         "avis" : avis
-#     }
+    return {
+        "message" : "Voici les avis",
+        "avis" : avis
+    }
+    
+@router.get("/plat/{id_plat}")
+async def getAvisByPlat(id_plat : int):
+    plat_ = await Plat.get_or_none(id = id_plat)
+    
+    if not plat_:
+        return {
+            "message" : "Plat Introuvable"
+        }
+    
+    avis = await Avis.filter(plat = plat_).all().order_by("-id")
+    
+    return {
+        "message" : f"Voici la liste des avis du plat {plat_.libelle}",
+        "avis" : avis
+    }
+
+@router.get("/chambre/{id_chambre}")
+async def getAvisByChambre(id_chambre : int):
+    chambre_ = await Chambre.get_or_none(id = id_chambre)
+    
+    if not chambre_:
+        return {
+            "message" : "Chambre Introuvable"
+        }
+    
+    avis = await Avis.filter(chambre = chambre_).all().order_by("-id")
+    
+    return {
+        "message" : f"Voici la liste des avis du plat {chambre_.numero}",
+        "avis" : avis
+    }
     
 
     
