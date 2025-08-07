@@ -12,6 +12,15 @@ async def getAllInc():
         "incindents" : await Incident.all().order_by("-id")
     }
 
+async def generate_incident_id():
+    last_incident = await Incident.filter(id__startswith="INC-").order_by("-id").first()
+    if last_incident:
+        last_number = int(last_incident.id.replace("INC-", ""))
+        new_number = last_number + 1
+    else:
+        new_number = 1
+    return f"INC-{new_number:04d}"
+
 @router.post("")
 async def addIncident(item : IncidentCreate):
     equip = await Equipement.get_or_none(id = item.equipement_id)
@@ -19,12 +28,11 @@ async def addIncident(item : IncidentCreate):
         return {
         "message" : "equipement introuvable"
         }
+        
+    generated_id = await generate_incident_id()
     
     inc = await Incident.create(
-       id = item.id,
-    
-        nom = item.nom,
-        
+       id = generated_id ,       
         equipement = equip,
         
         title = item.title,

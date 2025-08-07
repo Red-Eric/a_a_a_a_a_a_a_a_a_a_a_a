@@ -58,10 +58,12 @@ async def create_reservation(item: ReservationCreate):
             etablissement=chambre_.etablissement
         )
 
-    await notification_manager.broadcast(
-        event="reservation_create",
-        payload={"message": f"La réservation « {reservation.id} » a été ajoutée."}
-    )
+        await notification_manager.send_to_etablissement(
+            etablissement_id=chambre_.etablissement_id,
+            event="reservation_create",
+            payload={"message": f"La réservation « {reservation.id} » a été Ajouter"}
+        
+        )
 
     return {
         "message": "Réservation créée avec succès",
@@ -120,6 +122,8 @@ async def update_reservation(reservation_id: int, item: ReservationCreate):
     reservation.articles = [article.dict() for article in item.articles] if item.articles else []
     reservation.arhee = item.arhee.dict() if item.arhee else {}
 
+    
+
     await reservation.save()
 
     await Notification.create(
@@ -128,9 +132,10 @@ async def update_reservation(reservation_id: int, item: ReservationCreate):
         etablissement=chambre_.etablissement
     )
 
-    await notification_manager.broadcast(
+    await notification_manager.send_to_etablissement(
+        etablissement_id=chambre_.etablissement_id,
         event="reservation_update",
-        payload={"message": f"La réservation « {reservation.id} » a été modifiée."}
+        payload={"message": f"La réservation « {reservation.id} » a été modifier"}
     )
 
     return {
@@ -234,17 +239,17 @@ async def update_reservation_patch(
                         raison=f"Commande du client {client_.first_name or ''} {client_.last_name or ''} {client_.phone or ''}"
                     )
 
-    # ✅ Notification BD
+    
     await Notification.create(
         message=f"Le statut de la réservation « {reservation.id} » a été modifié à « {item.statut.value} ».",
         lu=False,
-        etablissement=chambre_.etablissement
+        etablissement=chambre_.etablissement_id
     )
 
-    # ✅ Notification WebSocket
-    await notification_manager.broadcast(
+    await notification_manager.send_to_etablissement(
+        etablissement_id=chambre_.etablissement_id,
         event="reservation_patch",
-        payload={"message": f"Le statut de la réservation « {reservation.id} » a été modifié à « {item.statut.value} »."}
+        payload={"message": f"La réservation « {reservation.id} » a été patcher"}
     )
 
     return {
@@ -255,19 +260,14 @@ async def update_reservation_patch(
 
 @router.delete("/{reservation_id}")
 async def delete_reservation(reservation_id: int):
-    reservation = await Reservation.get_or_none(id=reservation_id).prefetch_related("chambre__etablissement")
+    reservation = await Reservation.filter(id=reservation_id).prefetch_related("chambre__etablissement").first()
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
 
-    # On récupère l'établissement via la chambre liée
     etablissement = None
     if reservation.chambre and reservation.chambre.etablissement:
         etablissement = reservation.chambre.etablissement
 
-    # Supprimer la réservation
-    await reservation.delete()
-
-    # ✅ Créer une notification si l'établissement est trouvé
     if etablissement:
         await Notification.create(
             message=f"La réservation « {reservation_id} » a été supprimée.",
@@ -275,13 +275,16 @@ async def delete_reservation(reservation_id: int):
             etablissement=etablissement
         )
 
-        # ✅ Émettre un message WebSocket
-        await notification_manager.broadcast(
+        await notification_manager.send_to_etablissement(
+            etablissement_id=etablissement.id,
             event="reservation_delete",
-            payload={"message": f"La réservation « {reservation_id} » a été supprimée."}
+            payload={"message": f"La réservation « {reservation.id} » a été supprimée."}
         )
 
+    await reservation.delete()
+
     return {"message": "Réservation supprimée avec succès"}
+
 
 
 # ------------------------ Super Admin

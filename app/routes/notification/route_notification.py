@@ -10,7 +10,7 @@ router = APIRouter()
 
 @router.get("")
 async def getallNotif():
-    notif = await Notification.all().order_by("-id")
+    notif = await Notification.all().order_by("-date")
     
     return {
         "message": "notis",
@@ -26,7 +26,7 @@ async def getNotifByEtab(id_etab : int):
             "message": "etablissement inexistant"
         }
         
-    allNotif = await Notification.filter(etablissement = etab).all().order_by("-id")
+    allNotif = await Notification.filter(etablissement = etab).all().order_by("-date")
     
     return {
         "message" : "voici la liste de tout les etablissement",

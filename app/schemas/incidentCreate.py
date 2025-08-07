@@ -2,11 +2,9 @@ from pydantic import BaseModel
 
 class IncidentCreate(BaseModel):
 
-    id :str
+
     
-    nom : str
-    
-    equipement_id : int
+    equipement_id : str
     
     title : str
     

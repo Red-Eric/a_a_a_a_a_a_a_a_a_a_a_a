@@ -2,9 +2,7 @@ from tortoise.models import Model
 from tortoise import fields
 
 class Incident(Model):
-    id = fields.CharField(max_length = 15, pk= True)
-    
-    nom = fields.CharField(max_length = 20)
+    id = fields.CharField(max_length = 255, pk= True)
     
     equipement = fields.ForeignKeyField(
         "models.Equipement",
@@ -12,13 +10,13 @@ class Incident(Model):
         on_delete=fields.CASCADE
     )
     
-    title = fields.CharField(max_length = 20)
+    title = fields.CharField(max_length = 255)
     
-    description = fields.CharField(max_length = 50)
+    description = fields.CharField(max_length = 255)
     
-    severity = fields.CharField(max_length = 50)
+    severity = fields.CharField(max_length = 255)
     
-    status = fields.CharField(max_length = 50)
+    status = fields.CharField(max_length = 255)
     
     reportedAt = fields.DatetimeField(auto_now_add=True)
     

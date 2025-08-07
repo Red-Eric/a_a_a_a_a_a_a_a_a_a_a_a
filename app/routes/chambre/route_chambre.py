@@ -91,14 +91,12 @@ async def ajouter_chambre(
     etablissement=chambre.etablissement
     )
 
-    await notification_manager.broadcast(
-        event="chambre_create",
-        payload={"message": f"La chambre N°{chambre.numero} a été ajoutée."}
-    )
 
-    
-    
-    
+    await notification_manager.send_to_etablissement(
+        etablissement_id= chambre.etablissement_id,
+        event="chambre_create",
+        payload={"message": f"Le chambre numero « {chambre.numero} » a été ajouté."}
+    )
 
     return {
         "messgae" : "chambre ajouter avec succes",
@@ -172,9 +170,10 @@ async def update_chambre(
     etablissement=chambre.etablissement
     )
 
-    await notification_manager.broadcast(
+    await notification_manager.send_to_etablissement(
+        etablissement_id= chambre.etablissement_id,
         event="chambre_update",
-        payload={"message": f"La chambre N°{chambre.numero} a été mise à jour."}
+        payload={"message": f"Le chambre numero « {chambre.numero} » a été modifier."}
     )
 
 
@@ -249,10 +248,11 @@ async def delete_chambre(id_chambre: int):
     etablissement=etab
     )
     
-    await notification_manager.broadcast(
+    await notification_manager.send_to_etablissement(
+        etablissement_id= chambre.etablissement_id,
         event="chambre_delete",
-        payload={"message": f"La chambre N°{num} a été supprimée."}
-    )       
+        payload={"message": f"Le chambre numero « {chambre.numero} » a été effacer."}
+    )     
 
     await chambre.delete()
     

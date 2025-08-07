@@ -18,23 +18,6 @@ router = APIRouter()
 @router.get("/etablissement/{etablissement_id}")
 async def getAllFood(etablissement_id: int):
     plats = await Plat.filter(etablissement_id=etablissement_id).all().order_by("-id")
-    # result = []
-    # for plat in plats:
-    #     result.append({
-    #         "id": plat.id,
-    #         "etablissement_id": etablissement_id,
-    #         "libelle": plat.libelle,
-    #         "type_": plat.type,
-    #         "image_url": f"uploads/plat/{os.path.basename(plat.image_url)}" if plat.image_url else None,
-    #         "note": plat.note,
-    #         "prix": plat.prix,
-    #         "ingredients": plat.ingredients,
-    #         "tags": plat.tags,
-    #         "disponible": plat.disponible,
-    #         "calories": plat.calories,
-    #         "prep_minute": plat.prep_minute,
-    #         "description" : plat.description
-    #     })
 
     return {
         "message": "Voici la liste des plats",
@@ -125,9 +108,11 @@ async def addPlatWithImage(
     etablissement= await plat.etablissement
     )
 
-    await notification_manager.broadcast(
-        event="plat_create",
-        payload={"message": f"Le plat « {plat.libelle} » a été ajouté."}
+
+    await notification_manager.send_to_etablissement(
+    etablissement_id=etablissement_id,
+    event="plat_create",
+    payload={"message": f"Le plat « {plat.libelle} » a été ajouté."}
     )
 
 
@@ -216,9 +201,10 @@ async def editPlat(
     etablissement= await plat.etablissement
     )
 
-    await notification_manager.broadcast(
-        event="plat_update",
-        payload={"message": f"Le plat « {plat.libelle} » a été mis a jour."}
+    await notification_manager.send_to_etablissement(
+        etablissement_id = plat.etablissement_id,
+        event="plat_edit",
+        payload={"message": f"Le plat « {plat.libelle} » a été modifier."}
     )
 
     return {
@@ -250,9 +236,10 @@ async def deletePlat(id_plat: int):
     etablissement= await plat.etablissement
     )
 
-    await notification_manager.broadcast(
+    await notification_manager.send_to_etablissement(
+        etablissement_id= plat.etablissement_id,
         event="plat_delete",
-        payload={"message": f"Le plat « {plat.libelle} » a été ajouté."}
+        payload={"message": f"Le plat « {plat.libelle} » a été supprimer."}
     )
     await plat.delete()
     
