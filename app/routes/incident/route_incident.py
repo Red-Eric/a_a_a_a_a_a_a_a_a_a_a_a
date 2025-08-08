@@ -9,7 +9,7 @@ router = APIRouter()
 async def getAllInc():
     return {
         "message" : "Voici les incident",
-        "incindents" : await Incident.all().order_by("-id")
+        "incidents" : await Incident.all().order_by("-id")
     }
 
 async def generate_incident_id():
