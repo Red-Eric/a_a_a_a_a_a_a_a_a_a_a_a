@@ -18,3 +18,5 @@ class Conger_Create(BaseModel):
     
     personnel_id : int
     
+class Conger_Patch_status(BaseModel):
+    status : CongerStatus = CongerStatus.REFUSER

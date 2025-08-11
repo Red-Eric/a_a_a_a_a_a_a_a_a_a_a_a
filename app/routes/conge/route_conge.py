@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException
 from app.models.conge import Conge
 from app.models.etablissement import Etablissement
 from app.models.personnel import Personnel
-from app.schemas.conge_create import Conger_Create
-
+from app.schemas.conge_create import Conger_Create, Conger_Patch_status
+from app.enum.conge_status import CongerStatus
 router = APIRouter()
 
 
@@ -43,6 +43,21 @@ async def getCongeByEtablissement(id_: int):
         "conges": conges
     }
 
+@router.patch("/{id_conge}/{status}")
+async def patch_Status(id_conge : int, status : CongerStatus = CongerStatus.REFUSER ):
+    conge = await Conge.get_or_none(id = id_conge)
+    if not conge:
+        return {
+            "message" : "Conger introuvable"
+        }
+    conge.status = status
+    
+    await conge.save()
+    
+    return {
+        "message" : "Conge patcher avec succes",
+        "conge" : conge
+    }
 
 @router.post("")
 async def createConger(data: Conger_Create):
