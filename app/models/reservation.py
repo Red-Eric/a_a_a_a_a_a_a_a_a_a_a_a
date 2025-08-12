@@ -16,7 +16,7 @@ class Reservation(Model):
     articles = fields.JSONField(null = True)
     arhee = fields.JSONField(null = True)
     
-    statut = fields.CharEnumField(
+    status = fields.CharEnumField(
         enum_type=Status_Reservation,
         default=Status_Reservation.EN_ATTENTE,
         max_length=21

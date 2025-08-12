@@ -43,7 +43,7 @@ async def create_reservation(item: ReservationCreate):
             date_arrivee=item.date_arrivee,
             date_depart=item.date_depart,
             duree=item.duree,
-            statut=item.statut,
+            statut=item.status,
             nbr_adultes=item.nbr_adultes,
             nbr_enfants=item.nbr_enfants,
             mode_checkin=item.mode_checkin,
@@ -95,6 +95,24 @@ async def get_reservation(reservation_id: int):
         "message" : "voici la reservation",
         "reservations" : reservation
     }
+    
+@router.get("/chambre/{chambre_id}")
+async def getReservationByChambre(chambre_id : int):
+    
+    chamb = await Chambre.get_or_none(id = chambre_id)
+    
+    if not chamb:
+        return {
+            "message" : "Chambre inexistant"
+        }
+    
+    reservations = await Reservation.filter(chambre = chamb).all()
+    
+    return {
+        "message" : "voici la liste des reser",
+        "reservations" : reservations
+    }
+
 
 @router.put("/{reservation_id}")
 async def update_reservation(reservation_id: int, item: ReservationCreate):
@@ -114,7 +132,7 @@ async def update_reservation(reservation_id: int, item: ReservationCreate):
     reservation.date_arrivee = item.date_arrivee
     reservation.date_depart = item.date_depart
     reservation.duree = item.duree
-    reservation.statut = item.statut
+    reservation.status = item.status
     reservation.nbr_adultes = item.nbr_adultes
     reservation.nbr_enfants = item.nbr_enfants
     reservation.mode_checkin = item.mode_checkin
@@ -160,7 +178,7 @@ async def get_stats_by_status_and_etab(status_reservation: Status_Reservation, e
     chambre_ids = list(chambre_map.keys())
 
     reservations = await Reservation.filter(
-        statut=status_reservation,
+        status=status_reservation,
         chambre_id__in=chambre_ids
     )
 
@@ -171,7 +189,7 @@ async def get_stats_by_status_and_etab(status_reservation: Status_Reservation, e
             prix_total += float(chambre.tarif) * res.duree
 
     return {
-        "message": f"{len(reservations)} réservation(s) avec statut '{status_reservation.value}' dans l’établissement {etab.nom}",
+        "message": f"{len(reservations)} réservation(s) avec status '{status_reservation.value}' dans l’établissement {etab.nom}",
         "prix_total": prix_total,
         "nombres": len(reservations)
     }
@@ -278,7 +296,7 @@ async def get_reservations_by_client(id_client: int):
 @router.get("/revenu/etablissement/{etablissement_id}")
 async def revenu_par_etablissement(etablissement_id: int):
     reservations = await Reservation.filter(
-        statut=Status_Reservation.CONFIRMER,
+        status=Status_Reservation.CONFIRMER,
         chambre__etablissement_id=etablissement_id
     ).prefetch_related('chambre')
 
@@ -325,18 +343,18 @@ async def update_reservation_patch(
     if not pers:
         raise HTTPException(status_code=404, detail="Personnel non trouvé")
 
-    statut_initial = reservation.statut
+    statut_initial = reservation.status
 
     # Mise à jour du statut uniquement
-    reservation.statut = item.statut
+    reservation.status = item.status
     await reservation.save()
 
-    if reservation.statut == Status_Reservation.CONFIRMER:
+    if reservation.status == Status_Reservation.CONFIRMER:
         chambre_.etat = EtatChambre.OCCUPEE
         await chambre_.save()
 
     if item.articles:
-        if statut_initial == Status_Reservation.CONFIRMER and item.statut != Status_Reservation.CONFIRMER:
+        if statut_initial == Status_Reservation.CONFIRMER and item.status != Status_Reservation.CONFIRMER:
             # Retour stock (annulation)
             for article in item.articles:
                 prod_ = await Produit.get_or_none(nom=article.nom)
@@ -352,7 +370,7 @@ async def update_reservation_patch(
                         raison=f"Annulation de la commande du client {client_.first_name or ''} {client_.last_name or ''} {client_.phone or ''}"
                     )
 
-        elif item.statut == Status_Reservation.CONFIRMER:
+        elif item.status == Status_Reservation.CONFIRMER:
             # Sortie stock (confirmation)
             for article in item.articles:
                 prod_ = await Produit.get_or_none(nom=article.nom)
@@ -374,7 +392,7 @@ async def update_reservation_patch(
     etablissement_instance = await chambre_.etablissement
 
     await Notification.create(
-        message=f"Le statut de la réservation « {reservation.id} » a été modifié à « {item.statut.value} ».",
+        message=f"Le status de la réservation « {reservation.id} » a été modifié à « {item.status.value} ».",
         lu=False,
         etablissement=etablissement_instance
     )
@@ -389,6 +407,6 @@ async def update_reservation_patch(
     reservation_pydantic = await Reservation_Pydantic.from_tortoise_orm(reservation)
 
     return {
-        "message": "Statut de la réservation mis à jour avec succès",
+        "message": "Status de la réservation mis à jour avec succès",
         "reservation": reservation_pydantic
     }

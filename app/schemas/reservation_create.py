@@ -20,7 +20,7 @@ class ReservationCreate(BaseModel):
     date_arrivee: datetime
     date_depart: datetime
     duree: int
-    statut: Status_Reservation = Status_Reservation.EN_ATTENTE
+    status: Status_Reservation = Status_Reservation.EN_ATTENTE
     nbr_adultes: int
     nbr_enfants: int
     client_id: int
@@ -31,7 +31,7 @@ class ReservationCreate(BaseModel):
     arhee: Optional[Arhee] = None
     
 class ReservationPatch(BaseModel):
-    statut: Status_Reservation = Status_Reservation.CONFIRMER
+    status: Status_Reservation = Status_Reservation.CONFIRMER
     client_id: int
     chambre_id: int
     articles: Optional[List[Article]] = None

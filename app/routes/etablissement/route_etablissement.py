@@ -7,7 +7,7 @@ from app.models.chambre import Chambre
 from app.schemas.etablissementCreate import EtablissementCreate, EtabStatus
 from app.services.auth_service import AuthService
 from app.services.email_service import send_email
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.enum.account_status import AccountStatus
 #from passlib.hash import bcrypt
 from app.services.auth_service import AuthService
@@ -381,17 +381,40 @@ async def get_revenue_mois(etab_id: int, date_str: str):
     if not etab_:
         return {"message": "Etablissement introuvable"}
 
+    nb_jours = (fin_mois - debut_mois).days
+    resultats = [
+        {
+            "date": (debut_mois + timedelta(days=i)).strftime("%Y-%m-%d"),
+            "revenu_reservation": 0.0,
+            "revenu_commande_plat": 0.0,
+            "revenu_total": 0.0
+        }
+        for i in range(nb_jours)
+    ]
+
     reservations = await Reservation.filter(
-        statut=Status_Reservation.CONFIRMER,
+        status=Status_Reservation.CONFIRMER,
         chambre__etablissement_id=etab_id,
-        date_arrivee__gte=debut_mois,
+        date_depart__gte=debut_mois,
         date_arrivee__lt=fin_mois
     ).prefetch_related('chambre')
 
-    revenu_reservation = sum(
-        float(res.chambre.tarif) for res in reservations
-        if res.chambre and res.chambre.tarif
-    )
+    for res in reservations:
+        if res.chambre and res.chambre.tarif:
+            tarif_journalier = float(res.chambre.tarif)
+            print(f"Reservation chambre_id={res.chambre.id} tarif_journalier={tarif_journalier}")
+            arrivee = res.date_arrivee.replace(tzinfo=None).date()
+            depart = res.date_depart.replace(tzinfo=None).date()
+            start_day = max(arrivee, debut_mois.date())
+            end_day = min(depart, (fin_mois - timedelta(seconds=1)).date())
+
+            current_day = start_day
+            while current_day < end_day:
+                idx = (current_day - debut_mois.date()).days
+                print(f"Ajout tarif pour date={current_day} idx={idx}")
+                if 0 <= idx < nb_jours:
+                    resultats[idx]["revenu_reservation"] += tarif_journalier
+                current_day += timedelta(days=1)
 
     commandes = await Commande_Plat.filter(
         status=CommandeStatu.PAYEE,
@@ -399,13 +422,17 @@ async def get_revenue_mois(etab_id: int, date_str: str):
         date__lt=fin_mois
     ).all()
 
-    revenu_commande = sum(cmd.montant * cmd.quantite for cmd in commandes)
+    for cmd in commandes:
+        date_cmd = cmd.date.replace(tzinfo=None).date()
+        idx = (date_cmd - debut_mois.date()).days
+        print(f"Commande date={date_cmd} idx={idx} montant={cmd.montant} quantite={cmd.quantite}")
+        if 0 <= idx < nb_jours:
+            resultats[idx]["revenu_commande_plat"] += cmd.montant * cmd.quantite
 
-    revenu_total = revenu_reservation + revenu_commande
+    for jour in resultats:
+        jour["revenu_total"] = jour["revenu_reservation"] + jour["revenu_commande_plat"]
 
     return {
         "mois": debut_mois.strftime("%B %Y"),
-        "revenu_reservation": revenu_reservation,
-        "revenu_commande_plat": revenu_commande,
-        "revenu_total": revenu_total
+        "details": resultats
     }
