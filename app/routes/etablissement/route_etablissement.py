@@ -367,11 +367,19 @@ async def etablissements_recents():
   
 
 
-@router.get("/revenu/mois/{etab_id}")
-async def get_revenue_mois(etab_id: int):
-    now = datetime.utcnow()
-    debut_mois = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+@router.get("/revenu/mois/{etab_id}/{date_str}")
+async def get_revenue_mois(etab_id: int, date_str: str):
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m")
+    except ValueError:
+        return {"message": "Format de date invalide. Utiliser YYYY-MM (ex: 2012-01)"}
+
+    debut_mois = date_obj.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     fin_mois = (debut_mois + timedelta(days=32)).replace(day=1)
+
+    etab_ = await Etablissement.get_or_none(id=etab_id)
+    if not etab_:
+        return {"message": "Etablissement introuvable"}
 
     reservations = await Reservation.filter(
         statut=Status_Reservation.CONFIRMER,
@@ -380,22 +388,23 @@ async def get_revenue_mois(etab_id: int):
         date_arrivee__lt=fin_mois
     ).prefetch_related('chambre')
 
-    revenu_reservation = 0.0
-    for res in reservations:
-        if res.chambre and res.chambre.tarif:
-            revenu_reservation += float(res.chambre.tarif)
+    revenu_reservation = sum(
+        float(res.chambre.tarif) for res in reservations
+        if res.chambre and res.chambre.tarif
+    )
 
     commandes = await Commande_Plat.filter(
-        status=CommandeStatu.PAYEE,  
+        status=CommandeStatu.PAYEE,
+        date__gte=debut_mois,
+        date__lt=fin_mois
     ).all()
 
-    revenu_commande = 0.0
-    for cmd in commandes:
-        revenu_commande += cmd.montant * cmd.quantite
+    revenu_commande = sum(cmd.montant * cmd.quantite for cmd in commandes)
 
     revenu_total = revenu_reservation + revenu_commande
 
     return {
+        "mois": debut_mois.strftime("%B %Y"),
         "revenu_reservation": revenu_reservation,
         "revenu_commande_plat": revenu_commande,
         "revenu_total": revenu_total

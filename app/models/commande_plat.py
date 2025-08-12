@@ -9,6 +9,9 @@ class Commande_Plat(Model):
     quantite = fields.IntField()
     description = fields.CharField(max_length = 255, null = True)
     
+    date = fields.DatetimeField(auto_now_add=True)
+    
+    
     status = fields.CharEnumField(enum_type=CommandeStatu , max_length = 35, default = CommandeStatu.ENCOURS)
     
     client = fields.ForeignKeyField(

@@ -43,7 +43,7 @@ async def addProduit(item : Product_Create):
     
     if not pers_:
         return {
-            "message" : "Etablissement inexistante"
+            "message" : "Personnel  inexistante"
         }
         
     productToAdd = await Produit.create(

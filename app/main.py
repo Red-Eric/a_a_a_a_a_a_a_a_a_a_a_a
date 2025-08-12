@@ -38,7 +38,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001","http://localhost:3000", "http://192.168.1.211:3000", "http://192.168.1.211:8080", "http://192.168.1.170:3001", "http://192.168.1.139:3000", "http://192.168.1.131:3000", "http://192.168.1.170:3000", "*" ],  
+    allow_origins=["http://localhost:3001","http://localhost:3000", "http://192.168.1.211:3000", "http://192.168.1.211:8080", "http://192.168.1.170:3001", "http://192.168.1.139:3000", "http://192.168.1.131:3000", "http://192.168.1.170:3000", "192.168.1.132:3000" ],  
     allow_credentials=True,
     allow_methods=["*"],  
     allow_headers=["*"],  
@@ -54,7 +54,7 @@ app.include_router(router=ws_notification.router, tags=["WebSocket Notifications
 app.include_router(
     route_superAdmin.router, 
     prefix="/api/superAdmin", 
-    tags=["SuperAdmin"], 
+    tags=["SuperAdmins"], 
     # dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
@@ -90,7 +90,7 @@ app.include_router(
 app.include_router(
     route_chambre.router, 
     prefix="/api/chambre", 
-    tags=["Chambre"], 
+    tags=["Chambres"], 
     # dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
@@ -121,13 +121,13 @@ app.include_router(
 app.include_router(
     route_paiement_reservation.router, 
     prefix="/api/paiement-reservation", 
-    tags=["Paiements-reservation"], 
+    tags=["Paiements-reservations"], 
     # dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_commande_plat.router, 
     prefix="/api/commande", 
-    tags=["Commande Plat"], 
+    tags=["Commande Plats"], 
     # dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
@@ -139,7 +139,7 @@ app.include_router(
 app.include_router(
     route_plat.router, 
     prefix="/api/plat", 
-    tags=["Plat"], 
+    tags=["Plats"], 
     # dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
@@ -159,7 +159,7 @@ app.include_router(
 app.include_router(
     route_equipement.router, 
     prefix="/api/equipement", 
-    tags=["Equipement"], 
+    tags=["Equipements"], 
     # dependencies=[Depends(AuthService.get_current_user)]
 )
 

@@ -16,8 +16,8 @@ from app.enum.status_reservation import Status_Reservation
 from app.models.notification import Notification
 from app.websocket.notification_manager import notification_manager
 from collections import defaultdict
-
-
+from app.enum.etat_chambre import EtatChambre
+from tortoise.contrib.pydantic import pydantic_model_creator
 
 router = APIRouter()
 
@@ -177,87 +177,6 @@ async def get_stats_by_status_and_etab(status_reservation: Status_Reservation, e
     }
 
 
-@router.patch("/{reservation_id}")
-async def update_reservation_patch(
-    reservation_id: int,
-    item: ReservationPatch
-):
-    reservation = await Reservation.get_or_none(id=reservation_id)
-    if not reservation:
-        raise HTTPException(status_code=404, detail="Réservation non trouvée")
-
-    client_ = await Client.get_or_none(id=item.client_id)
-    if not client_:
-        raise HTTPException(status_code=404, detail="Client non trouvé")
-
-    chambre_ = await Chambre.get_or_none(id=item.chambre_id).prefetch_related("etablissement")
-    if not chambre_:
-        raise HTTPException(status_code=404, detail="Chambre non trouvée")
-
-    pers = await Personnel.get_or_none(id=item.personnel_id)
-    if not pers:
-        raise HTTPException(status_code=404, detail="Personnel non trouvé")
-
-    statut_initial = reservation.statut
-
-    # Mise à jour du statut uniquement
-    reservation.statut = item.statut
-    await reservation.save()
-
-    if item.articles:
-        if statut_initial == Status_Reservation.CONFIRMER and item.statut != Status_Reservation.CONFIRMER:
-            # Retour stock (annulation)
-            for article in item.articles:
-                prod_ = await Produit.get_or_none(nom=article.nom)
-                if prod_:
-                    prod_.quantite += article.quantite
-                    await prod_.save()
-
-                    await MouvementStock.create(
-                        produit=prod_,
-                        personnel=pers,
-                        quantite=article.quantite,
-                        type=Type_mouvement_stock.ENTRE,
-                        raison=f"Annulation de la commande du client {client_.first_name or ''} {client_.last_name or ''} {client_.phone or ''}"
-                    )
-
-        elif item.statut == Status_Reservation.CONFIRMER:
-            # Sortie stock (confirmation)
-            for article in item.articles:
-                prod_ = await Produit.get_or_none(nom=article.nom)
-                if prod_:
-                    if prod_.quantite < article.quantite:
-                        raise HTTPException(status_code=400, detail=f"Stock insuffisant pour le produit {article.nom}")
-
-                    prod_.quantite -= article.quantite
-                    await prod_.save()
-
-                    await MouvementStock.create(
-                        produit=prod_,
-                        personnel=pers,
-                        quantite=article.quantite,
-                        type=Type_mouvement_stock.SORTIE,
-                        raison=f"Commande du client {client_.first_name or ''} {client_.last_name or ''} {client_.phone or ''}"
-                    )
-
-    
-    await Notification.create(
-        message=f"Le statut de la réservation « {reservation.id} » a été modifié à « {item.statut.value} ».",
-        lu=False,
-        etablissement=chambre_.etablissement_id
-    )
-
-    await notification_manager.send_to_etablissement(
-        etablissement_id=chambre_.etablissement_id,
-        event="reservation_patch",
-        payload={"message": f"La réservation « {reservation.id} » a été patcher"}
-    )
-
-    return {
-        "message": "Statut de la réservation mis à jour avec succès",
-        "reservation": await reservation.values()
-    }
-
 
 @router.delete("/{reservation_id}")
 async def delete_reservation(reservation_id: int):
@@ -378,4 +297,98 @@ async def revenu_par_etablissement(etablissement_id: int):
     return {
         "message" : "voici les revenu journaliere de cette etablissement",
         "revenus" : result
+    }
+    
+
+
+
+Reservation_Pydantic = pydantic_model_creator(Reservation)
+
+@router.patch("/{reservation_id}")
+async def update_reservation_patch(
+    reservation_id: int,
+    item: ReservationPatch
+):
+    reservation = await Reservation.get_or_none(id=reservation_id)
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+
+    client_ = await Client.get_or_none(id=item.client_id)
+    if not client_:
+        raise HTTPException(status_code=404, detail="Client non trouvé")
+
+    chambre_ = await Chambre.get_or_none(id=item.chambre_id).prefetch_related("etablissement")
+    if not chambre_:
+        raise HTTPException(status_code=404, detail="Chambre non trouvée")
+
+    pers = await Personnel.get_or_none(id=item.personnel_id)
+    if not pers:
+        raise HTTPException(status_code=404, detail="Personnel non trouvé")
+
+    statut_initial = reservation.statut
+
+    # Mise à jour du statut uniquement
+    reservation.statut = item.statut
+    await reservation.save()
+
+    if reservation.statut == Status_Reservation.CONFIRMER:
+        chambre_.etat = EtatChambre.OCCUPEE
+        await chambre_.save()
+
+    if item.articles:
+        if statut_initial == Status_Reservation.CONFIRMER and item.statut != Status_Reservation.CONFIRMER:
+            # Retour stock (annulation)
+            for article in item.articles:
+                prod_ = await Produit.get_or_none(nom=article.nom)
+                if prod_:
+                    prod_.quantite += article.quantite
+                    await prod_.save()
+
+                    await MouvementStock.create(
+                        produit=prod_,
+                        personnel=pers,
+                        quantite=article.quantite,
+                        type=Type_mouvement_stock.ENTRE,
+                        raison=f"Annulation de la commande du client {client_.first_name or ''} {client_.last_name or ''} {client_.phone or ''}"
+                    )
+
+        elif item.statut == Status_Reservation.CONFIRMER:
+            # Sortie stock (confirmation)
+            for article in item.articles:
+                prod_ = await Produit.get_or_none(nom=article.nom)
+                if prod_:
+                    if prod_.quantite < article.quantite:
+                        raise HTTPException(status_code=400, detail=f"Stock insuffisant pour le produit {article.nom}")
+
+                    prod_.quantite -= article.quantite
+                    await prod_.save()
+
+                    await MouvementStock.create(
+                        produit=prod_,
+                        personnel=pers,
+                        quantite=article.quantite,
+                        type=Type_mouvement_stock.SORTIE,
+                        raison=f"Commande du client {client_.first_name or ''} {client_.last_name or ''} {client_.phone or ''}"
+                    )
+
+    etablissement_instance = await chambre_.etablissement
+
+    await Notification.create(
+        message=f"Le statut de la réservation « {reservation.id} » a été modifié à « {item.statut.value} ».",
+        lu=False,
+        etablissement=etablissement_instance
+    )
+
+    await notification_manager.send_to_etablissement(
+        etablissement_id=chambre_.etablissement_id,
+        event="reservation_patch",
+        payload={"message": f"La réservation « {reservation.id} » a été patchée"}
+    )
+
+    # Utilisation du modèle Pydantic pour sérialiser la réservation
+    reservation_pydantic = await Reservation_Pydantic.from_tortoise_orm(reservation)
+
+    return {
+        "message": "Statut de la réservation mis à jour avec succès",
+        "reservation": reservation_pydantic
     }
