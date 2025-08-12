@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Body
 from typing import List
 from app.models.reservation import Reservation
-from app.schemas.reservation_create import ReservationCreate
+from app.schemas.reservation_create import ReservationCreate, ReservationPatch
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from app.models.client import Client
@@ -15,6 +15,8 @@ from app.enum.type_mouvement_stock import Type_mouvement_stock
 from app.enum.status_reservation import Status_Reservation
 from app.models.notification import Notification
 from app.websocket.notification_manager import notification_manager
+from collections import defaultdict
+
 
 
 router = APIRouter()
@@ -178,8 +180,7 @@ async def get_stats_by_status_and_etab(status_reservation: Status_Reservation, e
 @router.patch("/{reservation_id}")
 async def update_reservation_patch(
     reservation_id: int,
-    item: ReservationCreate,
-    id_personnel: int = Body(...)
+    item: ReservationPatch
 ):
     reservation = await Reservation.get_or_none(id=reservation_id)
     if not reservation:
@@ -193,7 +194,7 @@ async def update_reservation_patch(
     if not chambre_:
         raise HTTPException(status_code=404, detail="Chambre non trouvée")
 
-    pers = await Personnel.get_or_none(id=id_personnel)
+    pers = await Personnel.get_or_none(id=item.personnel_id)
     if not pers:
         raise HTTPException(status_code=404, detail="Personnel non trouvé")
 
@@ -354,3 +355,27 @@ async def get_reservations_by_client(id_client: int):
         "reservations" : reservations
     }
     
+
+@router.get("/revenu/etablissement/{etablissement_id}")
+async def revenu_par_etablissement(etablissement_id: int):
+    reservations = await Reservation.filter(
+        statut=Status_Reservation.EN_ATTENTE,
+        chambre__etablissement_id=etablissement_id
+    ).prefetch_related('chambre')
+
+    revenu_par_jour = defaultdict(float)
+    for res in reservations:
+        if res.chambre:
+            date_only = res.date_arrivee.date()
+            revenu = float(res.chambre.tarif)
+            revenu_par_jour[date_only] += revenu
+
+    result = [
+        {"date": date.isoformat(), "revenu_total": revenu}
+        for date, revenu in sorted(revenu_par_jour.items())
+    ]
+
+    return {
+        "message" : "voici les revenu journaliere de cette etablissement",
+        "revenus" : result
+    }

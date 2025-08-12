@@ -29,3 +29,10 @@ class ReservationCreate(BaseModel):
     code_checkin: Optional[str] = None
     articles: Optional[List[Article]] = None
     arhee: Optional[Arhee] = None
+    
+class ReservationPatch(BaseModel):
+    statut: Status_Reservation = Status_Reservation.CONFIRMER
+    client_id: int
+    chambre_id: int
+    articles: Optional[List[Article]] = None
+    personnel_id : int
