@@ -27,6 +27,21 @@ async def getPersonnelByETablissement(id_: int):
         "personnels" : personnelToGet
     }
 
+@router.get("/{id_personnel}")
+async def getPersonnelByID(id_personnel : int):
+    pers = await Personnel.get_or_none(id = id_personnel)
+    
+    if not pers:
+        return {
+            "message" : "personnel introuvable"
+        }
+    
+    return {
+        "message" : f"Voici le personnel {pers.id}",
+        "personnel" : pers
+    }    
+
+
 
 @router.post("")
 async def addPersonnel(item : Personnel_Create):

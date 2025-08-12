@@ -1,11 +1,15 @@
 from tortoise.models import Model
 from tortoise import fields
+from app.enum.commande_statu import CommandeStatu
+
 
 class Commande_Plat(Model):
     id = fields.IntField(pk = True)
     montant = fields.IntField()
     quantite = fields.IntField()
     description = fields.CharField(max_length = 255, null = True)
+    
+    status = fields.CharEnumField(enum_type=CommandeStatu , max_length = 35, default = CommandeStatu.ENCOURS)
     
     client = fields.ForeignKeyField(
         "models.Client",

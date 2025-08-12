@@ -16,6 +16,22 @@ async def getAllTable():
         "tables" : all_
     }
 
+@router.get("/etablissement/{id_etab}")
+async def getTableByEtablissement(id_etab : int):
+    etab = await Etablissement.get_or_none(id = id_etab)
+    
+    if not etab:
+        return {
+            "message" : "Etablissement introuvable"
+        }
+        
+    tables = await Table.filter(etablissement = etab).all().order_by("-id")
+    
+    return {
+        "message" : f"Voici la liste de table de l etablissement {etab.nom}",
+        "tables" : tables
+    }
+
 @router.delete("/{id_}")
 async def deleteTable(id_ : int):
     tab_ = await Table.get_or_none(id = id_)

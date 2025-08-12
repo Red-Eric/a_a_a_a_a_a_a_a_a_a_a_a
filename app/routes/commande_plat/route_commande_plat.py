@@ -33,8 +33,8 @@ async def add_commande_plat(item: Commande_plat_create):
         plat=plat,
         montant=item.montant,
         quantite=item.quantite,
-        description=item.description
-        # L'attribut `etablissement` n’existe pas sur Commande_Plat, sauf si tu l’as oublié dans ton modèle
+        description=item.description,
+        status = item.status
     )
 
     return {
