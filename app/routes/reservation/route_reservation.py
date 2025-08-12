@@ -359,7 +359,7 @@ async def get_reservations_by_client(id_client: int):
 @router.get("/revenu/etablissement/{etablissement_id}")
 async def revenu_par_etablissement(etablissement_id: int):
     reservations = await Reservation.filter(
-        statut=Status_Reservation.EN_ATTENTE,
+        statut=Status_Reservation.CONFIRMER,
         chambre__etablissement_id=etablissement_id
     ).prefetch_related('chambre')
 

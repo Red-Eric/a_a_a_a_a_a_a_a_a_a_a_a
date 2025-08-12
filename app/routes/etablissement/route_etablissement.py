@@ -1,6 +1,7 @@
 from itertools import count
 from tortoise.functions import Count
 from fastapi import Form, File, UploadFile, HTTPException, APIRouter
+from app.enum.commande_statu import CommandeStatu
 from app.models.etablissement import Etablissement
 from app.models.chambre import Chambre
 from app.schemas.etablissementCreate import EtablissementCreate, EtabStatus
@@ -13,6 +14,9 @@ from app.services.auth_service import AuthService
 from app.enum.type_etablissement import Type_etablissement
 from app.enum.etablissement_statu import Etablissement_status
 from typing import Optional
+from app.models.reservation import Reservation
+from app.models.commande_plat import Commande_Plat
+from app.enum.status_reservation import Status_Reservation
 
 
 import os
@@ -359,4 +363,40 @@ async def etablissements_recents():
     return {
         "message": "3 derniers établissements ajoutés",
         "etablissements": etablissements
+    }
+  
+
+
+@router.get("/revenu/mois/{etab_id}")
+async def get_revenue_mois(etab_id: int):
+    now = datetime.utcnow()
+    debut_mois = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    fin_mois = (debut_mois + timedelta(days=32)).replace(day=1)
+
+    reservations = await Reservation.filter(
+        statut=Status_Reservation.CONFIRMER,
+        chambre__etablissement_id=etab_id,
+        date_arrivee__gte=debut_mois,
+        date_arrivee__lt=fin_mois
+    ).prefetch_related('chambre')
+
+    revenu_reservation = 0.0
+    for res in reservations:
+        if res.chambre and res.chambre.tarif:
+            revenu_reservation += float(res.chambre.tarif)
+
+    commandes = await Commande_Plat.filter(
+        status=CommandeStatu.PAYEE,  
+    ).all()
+
+    revenu_commande = 0.0
+    for cmd in commandes:
+        revenu_commande += cmd.montant * cmd.quantite
+
+    revenu_total = revenu_reservation + revenu_commande
+
+    return {
+        "revenu_reservation": revenu_reservation,
+        "revenu_commande_plat": revenu_commande,
+        "revenu_total": revenu_total
     }
