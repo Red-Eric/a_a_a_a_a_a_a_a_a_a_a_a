@@ -146,3 +146,12 @@ async def etablissements_recents():
         "message": "3 derniers établissements ajoutés",
         "etablissements": clients
     }
+    
+@router.get("email/{email}")
+async def getByEmail(email : str):
+    clien = await Client.filter(email = email).all()
+    
+    return {
+        "message" : "ivjrivjrr",
+        "clients" : clien
+    }

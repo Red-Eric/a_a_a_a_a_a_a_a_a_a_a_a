@@ -193,7 +193,47 @@ async def get_stats_by_status_and_etab(status_reservation: Status_Reservation, e
         "prix_total": prix_total,
         "nombres": len(reservations)
     }
+    
+    
+@router.get("/status/mois/{status_reservation}/{etab_id}")
+async def get_stats_by_status_and_etab(status_reservation: Status_Reservation, etab_id: int):
+    etab = await Etablissement.get_or_none(id=etab_id)
+    if not etab:
+        return {"message": "Etablissement introuvable"}
 
+    # Récupérer toutes les chambres de l'établissement
+    chambres = await Chambre.filter(etablissement_id=etab_id).all()
+    chambre_map = {chambre.id: chambre for chambre in chambres}
+    chambre_ids = list(chambre_map.keys())
+
+    # Début et fin du mois actuel
+    now = datetime.now()
+    debut_mois = datetime(now.year, now.month, 1)
+    if now.month == 12:
+        fin_mois = datetime(now.year + 1, 1, 1)
+    else:
+        fin_mois = datetime(now.year, now.month + 1, 1)
+
+    # Filtrer les réservations du mois en cours
+    reservations = await Reservation.filter(
+        status=status_reservation,
+        chambre_id__in=chambre_ids,
+        date_reservation__gte=debut_mois,
+        date_reservation__lt=fin_mois
+    )
+
+    # Calcul du prix total
+    prix_total = 0.0
+    for res in reservations:
+        chambre = chambre_map.get(res.chambre_id)
+        if chambre and chambre.tarif:
+            prix_total += float(chambre.tarif) * res.duree
+
+    return {
+        "message": f"{len(reservations)} réservation(s) avec status '{status_reservation.value}' ce mois-ci dans l’établissement {etab.nom}",
+        "prix_total": prix_total,
+        "nombres": len(reservations)
+    }
 
 
 @router.delete("/{reservation_id}")
