@@ -16,7 +16,7 @@ __pycache__/
 __init__.py
 
 
-app/uploads/
+# app/uploads/
 
 
 .env
