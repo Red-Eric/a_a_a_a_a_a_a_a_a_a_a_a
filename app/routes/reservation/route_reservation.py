@@ -345,7 +345,6 @@ async def update_reservation_patch(
 
     statut_initial = reservation.status
 
-    # Mise à jour du statut uniquement
     reservation.status = item.status
     await reservation.save()
 

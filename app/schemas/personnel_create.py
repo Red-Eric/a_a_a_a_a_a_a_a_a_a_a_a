@@ -11,6 +11,7 @@ class Personnel_Create(BaseModel):
     email : EmailStr
     mot_de_passe : Optional[str]
     etablissement_id : int
+    salaire : int = 100000
     role : Role
     poste : Optional[str] = ""
     date_embauche : date

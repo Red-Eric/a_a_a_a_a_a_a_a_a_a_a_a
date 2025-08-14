@@ -13,7 +13,7 @@ class Client(Model):
     first_name = fields.CharField(max_length=50)
     phone = fields.CharField(max_length=20, null=True)
     email = fields.CharField(max_length=100, unique=True)
-    password = fields.CharField(max_length=255)
+    password = fields.CharField(max_length=255, null=True)
     pays = fields.CharField(max_length=60, null=True)
     sexe = fields.CharEnumField(enum_type=Sexe, max_length=35)
     

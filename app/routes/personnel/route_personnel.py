@@ -60,6 +60,7 @@ async def addPersonnel(item : Personnel_Create):
         etablissement = etab_,
         role = item.role,
         poste = item.role,
+        salaire = item.salaire,
         date_embauche = item.date_embauche,
         statut_compte = item.statut_compte
     )
@@ -119,6 +120,7 @@ async def editPersonnel(id_ : int, item : Personnel_Create):
     personnelToEdit.prenom = item.prenom
     personnelToEdit.telephone = item.telephone
     personnelToEdit.email = item.email
+    personnelToEdit.salaire = item.salaire
     
     if item.mot_de_passe == "":
         personnelToEdit.mot_de_passe = item.mot_de_passe

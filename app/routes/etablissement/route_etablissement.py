@@ -17,7 +17,9 @@ from typing import Optional
 from app.models.reservation import Reservation
 from app.models.commande_plat import Commande_Plat
 from app.enum.status_reservation import Status_Reservation
-
+from tortoise.functions import Sum
+from app.models.personnel import Personnel
+from collections import defaultdict
 
 import os
 from uuid import uuid4
@@ -435,4 +437,129 @@ async def get_revenue_mois(etab_id: int, date_str: str):
     return {
         "mois": debut_mois.strftime("%B %Y"),
         "details": resultats
+    }
+
+# salaire 
+
+
+@router.get("/salaire/personnel/{id_etab}")
+async def getSalaireTotalEmployer(id_etab: int):
+    etab = await Etablissement.get_or_none(id=id_etab)
+    if not etab:
+        raise HTTPException(status_code=404, detail="Établissement non trouvé")
+
+    result = await Personnel.filter(etablissement_id=id_etab).annotate(
+        total_salaire=Sum("salaire")
+    ).values("total_salaire")
+
+    total = result[0]["total_salaire"] if result and result[0]["total_salaire"] is not None else 0
+
+    return {
+        "message" : "Voici la total des salaire",
+        "total" : total
+    }
+    
+
+
+@router.get("/bilan/etablissement/{id_etab}")
+async def bilan_etablissement(id_etab: int):
+    etab = await Etablissement.get_or_none(id=id_etab)
+    if not etab:
+        raise HTTPException(status_code=404, detail="Établissement non trouvé")
+
+    depenses_res = await Personnel.filter(etablissement_id=id_etab).annotate(
+        total_salaire=Sum("salaire")
+    ).values("total_salaire")
+    total_salaire = depenses_res[0]["total_salaire"] if depenses_res and depenses_res[0]["total_salaire"] is not None else 0
+
+    reservations = await Reservation.filter(
+        status=Status_Reservation.CONFIRMER,
+        chambre__etablissement_id=id_etab
+    ).prefetch_related("chambre")
+
+    revenu_reservations = sum(
+        float(res.chambre.tarif) * res.duree
+        for res in reservations if res.chambre and res.duree
+    )
+
+    commandes_res = await Commande_Plat.filter(
+        status=CommandeStatu.PAYEE,
+        plat__etablissement_id=id_etab
+    ).annotate(total_montant=Sum("montant")).values("total_montant")
+
+    revenu_commandes = commandes_res[0]["total_montant"] if commandes_res and commandes_res[0]["total_montant"] is not None else 0
+
+    total_rentrant = revenu_reservations + revenu_commandes
+    benefice = total_rentrant - total_salaire
+
+    return {
+        "message": "Bilan de l'établissement",
+        "depenses": total_salaire,
+        "rentrant": total_rentrant,
+        "details": {
+            "revenu_reservations": revenu_reservations,
+            "revenu_commandes": revenu_commandes
+        },
+        "benefice": benefice
+    }
+
+
+# from collections import defaultdict
+
+
+@router.get("/bilan/etablissement/{id_etab}/{annee}")
+async def bilan_etablissement_annuel(id_etab: int, annee: int):
+    etab = await Etablissement.get_or_none(id=id_etab)
+    if not etab:
+        raise HTTPException(status_code=404, detail="Établissement non trouvé")
+
+    depenses_res = await Personnel.filter(etablissement_id=id_etab).annotate(
+        total_salaire=Sum("salaire")
+    ).values("total_salaire")
+    salaire_total = depenses_res[0]["total_salaire"] if depenses_res and depenses_res[0]["total_salaire"] is not None else 0
+
+    bilan_mensuel = {}
+    for mois in range(1, 13):
+        cle = f"{annee}-{mois:02d}"
+        bilan_mensuel[cle] = {
+            "depenses": salaire_total,
+            "revenu": 0,
+            "details": {
+                "revenu_reservations": 0,
+                "revenu_commandes": 0
+            },
+            "benefice": 0
+        }
+
+    reservations = await Reservation.filter(
+        status=Status_Reservation.CONFIRMER,
+        chambre__etablissement_id=id_etab,
+        date_arrivee__year=annee
+    ).prefetch_related("chambre")
+
+    for res in reservations:
+        if res.chambre and res.duree:
+            mois_cle = res.date_arrivee.strftime("%Y-%m")
+            montant = float(res.chambre.tarif) * res.duree
+            bilan_mensuel[mois_cle]["revenu"] += montant
+            bilan_mensuel[mois_cle]["details"]["revenu_reservations"] += montant
+
+    commandes = await Commande_Plat.filter(
+        status=CommandeStatu.PAYEE,
+        plat__etablissement_id=id_etab,
+        date__year=annee
+    ).prefetch_related("plat")
+
+    for cmd in commandes:
+        mois_cle = cmd.date.strftime("%Y-%m")
+        montant = float(cmd.montant)
+        bilan_mensuel[mois_cle]["revenu"] += montant
+        bilan_mensuel[mois_cle]["details"]["revenu_commandes"] += montant
+
+    for mois, data in bilan_mensuel.items():
+        data["benefice"] = data["revenu"] - data["depenses"]
+
+    return {
+        "message": f"voici le bilan de cette année {annee}",
+        "bilan": dict(sorted(bilan_mensuel.items()))
     }

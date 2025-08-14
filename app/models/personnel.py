@@ -15,6 +15,8 @@ class Personnel(Model):
     email = fields.CharField(max_length=100, unique=True)
     mot_de_passe = fields.CharField(max_length=255)
 
+    salaire = fields.IntField(default = 100000)
+
     role = fields.CharEnumField(
         enum_type=Role,
         max_length=30
