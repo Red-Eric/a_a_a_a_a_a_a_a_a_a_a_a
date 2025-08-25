@@ -55,125 +55,125 @@ app.include_router(
     route_superAdmin.router, 
     prefix="/api/superAdmin", 
     tags=["SuperAdmins"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+     dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_client.router, 
     prefix="/api/client", 
     tags=["clients"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+     dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_etablissement.router, 
     prefix="/api/etablissement", 
     tags=["etablissements"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+     dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_notification.router, 
     prefix="/api/notification", 
     tags=["Notifications"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+     dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_produit.router, 
     prefix="/api/produit", 
     tags=["Produits"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+     dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_personnel.router, 
     prefix="/api/personnel", 
     tags=["Personnels"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+     dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_chambre.router, 
     prefix="/api/chambre", 
     tags=["Chambres"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+     dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_reservation.router, 
     prefix="/api/reservation", 
     tags=["Reservations"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_planning.router, 
     prefix="/api/planning", 
     tags=["Plannings"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_rapport.router, 
     prefix="/api/rapport", 
     tags=["Rapports"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 
 app.include_router(
     route_conge.router, 
     prefix="/api/conge", 
     tags=["Conges"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_paiement_reservation.router, 
     prefix="/api/paiement-reservation", 
     tags=["Paiements-reservations"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_commande_plat.router, 
     prefix="/api/commande", 
     tags=["Commande Plats"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_table.router, 
     prefix="/api/table", 
     tags=["Tables"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_plat.router, 
     prefix="/api/plat", 
     tags=["Plats"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_avis.router, 
     prefix="/api/avis", 
     tags=["Avis"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 
 app.include_router(
     route_favori.router, 
     prefix="/api/favori", 
     tags=["Favoris"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 
 app.include_router(
     route_equipement.router, 
     prefix="/api/equipement", 
     tags=["Equipements"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 
 app.include_router(
     route_incident.router, 
     prefix="/api/incident", 
     tags=["Incidents"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 app.include_router(
     route_intervention.router, 
     prefix="/api/intervention", 
     tags=["Interventions"], 
-    # dependencies=[Depends(AuthService.get_current_user)]
+    dependencies=[Depends(AuthService.get_current_user)]
 )
 
 

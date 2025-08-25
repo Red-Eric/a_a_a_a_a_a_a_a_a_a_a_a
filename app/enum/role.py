@@ -6,5 +6,4 @@ class Role(str, Enum):
     MANAGER = "Manager"
     RH = "RH"
     CAISSIER = "Caissier"
-    DIRECTEUR = "Directeur"
     CLIENT =  "Client"

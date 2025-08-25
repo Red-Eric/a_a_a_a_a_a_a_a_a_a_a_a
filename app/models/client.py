@@ -7,6 +7,8 @@ from app.models.reservation import Reservation
 from app.enum.status_reservation import Status_Reservation
 from app.enum.checking_type import CheckingType  # Assure-toi qu’il existe
 from app.enum.sexe import Sexe
+
+
 class Client(Model):
     id = fields.IntField(pk=True, source_field="client_id")
     last_name = fields.CharField(max_length=50)

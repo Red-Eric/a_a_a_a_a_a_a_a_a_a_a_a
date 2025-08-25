@@ -237,7 +237,7 @@ async def get_stats_by_status_and_etab(status_reservation: Status_Reservation, e
 
 
 @router.delete("/{reservation_id}")
-async def delete_reservation(reservation_id: int):
+async def annuler_reservation(reservation_id: int):
     reservation = await Reservation.filter(id=reservation_id).prefetch_related("chambre__etablissement").first()
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
@@ -358,8 +358,6 @@ async def revenu_par_etablissement(etablissement_id: int):
     }
     
 
-
-
 Reservation_Pydantic = pydantic_model_creator(Reservation)
 
 @router.patch("/{reservation_id}")
@@ -371,13 +369,8 @@ async def update_reservation_patch(
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
 
-    client_ = await Client.get_or_none(id=item.client_id)
-    if not client_:
-        raise HTTPException(status_code=404, detail="Client non trouvé")
-
-    chambre_ = await Chambre.get_or_none(id=item.chambre_id).prefetch_related("etablissement")
-    if not chambre_:
-        raise HTTPException(status_code=404, detail="Chambre non trouvée")
+    client_ = await reservation.client
+    chambre_ = await reservation.chambre
 
     pers = await Personnel.get_or_none(id=item.personnel_id)
     if not pers:
@@ -392,10 +385,10 @@ async def update_reservation_patch(
         chambre_.etat = EtatChambre.OCCUPEE
         await chambre_.save()
 
-    if item.articles:
+    if reservation.articles:
         if statut_initial == Status_Reservation.CONFIRMER and item.status != Status_Reservation.CONFIRMER:
             # Retour stock (annulation)
-            for article in item.articles:
+            for article in reservation.articles:
                 prod_ = await Produit.get_or_none(nom=article.nom)
                 if prod_:
                     prod_.quantite += article.quantite
@@ -409,9 +402,9 @@ async def update_reservation_patch(
                         raison=f"Annulation de la commande du client {client_.first_name or ''} {client_.last_name or ''} {client_.phone or ''}"
                     )
 
-        elif item.status == Status_Reservation.CONFIRMER:
+        elif reservation.status == Status_Reservation.CONFIRMER:
             # Sortie stock (confirmation)
-            for article in item.articles:
+            for article in reservation.articles:
                 prod_ = await Produit.get_or_none(nom=article.nom)
                 if prod_:
                     if prod_.quantite < article.quantite:
