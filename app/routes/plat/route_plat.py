@@ -7,7 +7,7 @@ import json
 from app.enum.type_plat import Type_plat
 from app.websocket.notification_manager import notification_manager
 from app.models.notification import Notification
-
+from app.enum.Notification import NotificationTitle, NotificationType
 
 UPLOAD_DIR = "uploads/plat"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -103,9 +103,11 @@ async def addPlatWithImage(
     )
 
     await Notification.create(
-    message=f"Le plat « {plat.libelle} » a été ajouté.",
-    lu=False,
-    etablissement= await plat.etablissement
+        titre = NotificationTitle.AJOUT,
+        type = NotificationType.PLAT,
+        message=f"Le plat « {plat.libelle} » a été ajouté.",
+        lu=False,
+        etablissement= await plat.etablissement
     )
 
 
@@ -196,9 +198,11 @@ async def editPlat(
     
     
     await Notification.create(
-    message=f"Le plat « {plat.libelle} » a été mis a jour.",
-    lu=False,
-    etablissement= await plat.etablissement
+        titre = NotificationTitle.MODIFICATION,
+        type = NotificationType.RESERVATION,
+        message=f"Le plat « {plat.libelle} » a été mis a jour.",
+        lu=False,
+        etablissement= await plat.etablissement
     )
 
     await notification_manager.send_to_etablissement(
@@ -231,9 +235,11 @@ async def deletePlat(id_plat: int):
 
     
     await Notification.create(
-    message=f"Le plat « {plat.libelle} » a été effacer.",
-    lu=False,
-    etablissement= await plat.etablissement
+        titre = NotificationTitle.SUPPRESSION,
+        type = NotificationType.PLAT,
+        message=f"Le plat « {plat.libelle} » a été effacer.",
+        lu=False,
+        etablissement= await plat.etablissement
     )
 
     await notification_manager.send_to_etablissement(

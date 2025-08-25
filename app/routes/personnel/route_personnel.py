@@ -4,6 +4,7 @@ from app.models.etablissement import Etablissement
 from app.schemas.personnel_create import Personnel_Create
 from app.services.auth_service import AuthService
 from app.services.email_service import send_email
+from app.enum.Notification import NotificationTitle, NotificationType
 
 router = APIRouter()
 

@@ -71,16 +71,22 @@ class AuthService:
         return pwd_context.hash(password)
     
     @staticmethod
-    def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    def create_access_token(data: dict, expires_delta: Optional[timedelta] = None, isMobile : bool = False) -> str:
         """Crée un token d'accès JWT"""
         to_encode = data.copy()
-        if expires_delta:
-            expire = datetime.now(timezone.utc) + expires_delta
-        else:
-            expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         
-        to_encode.update({"exp": expire, "type": "access"})
-        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        if isMobile:
+            to_encode.update({"isMobile": True , "type": "access"})
+        else:
+        
+            if expires_delta:
+                expire = datetime.now(timezone.utc) + expires_delta
+            else:
+                expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            
+            to_encode.update({"exp": expire, "type": "access"})
+            
+        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)    
         return encoded_jwt
     
     @staticmethod
@@ -369,7 +375,7 @@ class AuthService:
         )
 
     @staticmethod
-    async def login_client(credentials: UserLogin) -> TokenResponse:
+    async def login_client(credentials: UserLogin, isMobile : bool) -> TokenResponse:
         """Login pour les clients"""
         client = await Client.get_or_none(email=credentials.email)
         if not client or not AuthService.verify_password(credentials.password, client.password):
@@ -390,7 +396,7 @@ class AuthService:
             "role": "client"
         }
         
-        access_token = AuthService.create_access_token(token_data)
+        access_token = AuthService.create_access_token(token_data, isMobile = isMobile)
         refresh_token = AuthService.create_refresh_token(token_data)
         
         return TokenResponse(

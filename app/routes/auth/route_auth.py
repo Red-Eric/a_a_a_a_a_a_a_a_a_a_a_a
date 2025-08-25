@@ -47,11 +47,13 @@ async def register_personnel(data: Personnel_Create, code: str = Body(...)):
     return await AuthService.register_personnel(data, code)
 
 @router.post("/login/client", response_model=TokenResponse)
-async def login_client(data: UserLogin):
+async def login_client(data: UserLogin, isMobile : bool = False):
     """
     Authentifie un client et retourne un token d'accès et de rafraîchissement.
     """
-    return await AuthService.login_client(data)
+
+    
+    return await AuthService.login_client(data, isMobile)
 
 @router.post("/login/etablissement", response_model=TokenResponse)
 async def login_etablissement(data: UserLogin):

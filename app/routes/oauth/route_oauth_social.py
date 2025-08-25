@@ -74,7 +74,7 @@ async def social_login(data: SocialLoginPayload):
         "role": "client"
     }
 
-    access_token = AuthService.create_access_token(token_data)
+    access_token = AuthService.create_access_token(token_data, isMobile=True)
     refresh_token = AuthService.create_refresh_token(token_data)
 
     return TokenResponse(
@@ -86,6 +86,9 @@ async def social_login(data: SocialLoginPayload):
             id=client.id,
             email=client.email,
             first_name=client.first_name,
-            last_name=client.last_name
+            last_name=client.last_name,
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer"
         )
     )

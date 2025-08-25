@@ -34,5 +34,5 @@ class ReservationPatch(BaseModel):
     status: Status_Reservation = Status_Reservation.CONFIRMER
     # client_id: int
     # chambre_id: int
-    articles: Optional[List[Article]] = None
+    # articles: Optional[List[Article]] = None
     personnel_id : int

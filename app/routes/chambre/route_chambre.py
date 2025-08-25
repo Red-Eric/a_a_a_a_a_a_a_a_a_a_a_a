@@ -11,6 +11,7 @@ from uuid import uuid4
 from typing import Optional
 from app.websocket.notification_manager import notification_manager
 from app.models.notification import Notification
+from app.enum.Notification import NotificationTitle, NotificationType
 
 router = APIRouter()
 UPLOAD_DIR = "uploads/chambres"
@@ -86,6 +87,8 @@ async def ajouter_chambre(
     
     
     await Notification.create(
+    titre=NotificationTitle.AJOUT,
+    type=NotificationType.CHAMBRE,
     message=f"La chambre N°{chambre.numero} a été ajoutée.",
     lu=False,
     etablissement=chambre.etablissement
@@ -165,9 +168,11 @@ async def update_chambre(
     
     
     await Notification.create(
-    message=f"La chambre N°{chambre.numero} a été mise à jour.",
-    lu=False,
-    etablissement=chambre.etablissement
+        titre = NotificationTitle.MODIFICATION,
+        type = NotificationType.CHAMBRE,
+        message=f"La chambre N°{chambre.numero} a été mise à jour.",
+        lu=False,
+        etablissement=chambre.etablissement
     )
 
     await notification_manager.send_to_etablissement(
@@ -243,9 +248,11 @@ async def delete_chambre(id_chambre: int):
     
     
     await Notification.create(
-    message=f"La chambre N°{num} a été supprimée.",
-    lu=False,
-    etablissement=etab
+        titre = NotificationTitle.SUPPRESSION,
+        type = NotificationType.CHAMBRE,
+        message=f"La chambre N°{num} a été supprimée.",
+        lu=False,
+        etablissement=etab
     )
     
     await notification_manager.send_to_etablissement(
@@ -255,8 +262,5 @@ async def delete_chambre(id_chambre: int):
     )     
 
     await chambre.delete()
-    
-    
-
     
     return {"message": "Chambre supprimée avec succès"}

@@ -563,3 +563,77 @@ async def bilan_etablissement_annuel(id_etab: int, annee: int):
         "message": f"voici le bilan de cette année {annee}",
         "bilan": dict(sorted(bilan_mensuel.items()))
     }
+
+
+@router.get("/bilan/tout/{id_etab}")
+async def bilan_etablissement_tous_les_ans(id_etab: int):
+    etab = await Etablissement.get_or_none(id=id_etab)
+    if not etab:
+        raise HTTPException(status_code=404, detail="Établissement non trouvé")
+
+    # Total salaire fixe par année (dépenses)
+    depenses_res = await Personnel.filter(etablissement_id=id_etab).annotate(
+        total_salaire=Sum("salaire")
+    ).values("total_salaire")
+    salaire_total = depenses_res[0]["total_salaire"] if depenses_res and depenses_res[0]["total_salaire"] is not None else 0
+
+    bilan_annuel = {}
+
+    # ---- RÉSERVATIONS ----
+    reservations = await Reservation.filter(
+        status=Status_Reservation.CONFIRMER,
+        chambre__etablissement_id=id_etab
+    ).prefetch_related("chambre")
+
+    for res in reservations:
+        if res.chambre and res.duree and res.date_arrivee:
+            annee = res.date_arrivee.year
+            montant = float(res.chambre.tarif) * res.duree
+
+            if annee not in bilan_annuel:
+                bilan_annuel[annee] = {
+                    "depenses": salaire_total,
+                    "revenu": 0,
+                    "details": {
+                        "revenu_reservations": 0,
+                        "revenu_commandes": 0
+                    },
+                    "benefice": 0
+                }
+
+            bilan_annuel[annee]["revenu"] += montant
+            bilan_annuel[annee]["details"]["revenu_reservations"] += montant
+
+    # ---- COMMANDES ----
+    commandes = await Commande_Plat.filter(
+        status=CommandeStatu.PAYEE,
+        plat__etablissement_id=id_etab
+    ).prefetch_related("plat")
+
+    for cmd in commandes:
+        if cmd.date:
+            annee = cmd.date.year
+            montant = float(cmd.montant)
+
+            if annee not in bilan_annuel:
+                bilan_annuel[annee] = {
+                    "depenses": salaire_total,
+                    "revenu": 0,
+                    "details": {
+                        "revenu_reservations": 0,
+                        "revenu_commandes": 0
+                    },
+                    "benefice": 0
+                }
+
+            bilan_annuel[annee]["revenu"] += montant
+            bilan_annuel[annee]["details"]["revenu_commandes"] += montant
+
+    # ---- BENEFICE ----
+    for annee, data in bilan_annuel.items():
+        data["benefice"] = data["revenu"] - data["depenses"]
+
+    return {
+        "message": "voici le bilan annuel global",
+        "bilan": dict(sorted(bilan_annuel.items()))
+    }

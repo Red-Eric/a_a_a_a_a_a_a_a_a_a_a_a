@@ -1,6 +1,6 @@
 from enum import Enum
 
 class Status_Paiement(str, Enum):
-    REFUSER = "Refuser"
-    EFFECTUER = "Effectuer"
+    REFUSER = "Refusé"
+    EFFECTUER = "Effectué"
     EN_ATTENTE = "En Attente"

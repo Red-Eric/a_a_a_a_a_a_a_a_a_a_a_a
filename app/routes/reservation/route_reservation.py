@@ -18,6 +18,8 @@ from app.websocket.notification_manager import notification_manager
 from collections import defaultdict
 from app.enum.etat_chambre import EtatChambre
 from tortoise.contrib.pydantic import pydantic_model_creator
+from app.enum.Notification import NotificationTitle, NotificationType
+
 
 router = APIRouter()
 
@@ -55,6 +57,8 @@ async def create_reservation(item: ReservationCreate):
         )
 
         await Notification.create(
+            titre = NotificationTitle.AJOUT,
+            type = NotificationType.RESERVATION,
             message=f"La réservation « {reservation.id} » a été ajoutée.",
             lu=False,
             etablissement=chambre_.etablissement
@@ -109,7 +113,7 @@ async def getReservationByChambre(chambre_id : int):
     reservations = await Reservation.filter(chambre = chamb).all()
     
     return {
-        "message" : "voici la liste des reser",
+        "message" : f"voici la liste des reservation de ce chambre {chamb.numero}",
         "reservations" : reservations
     }
 
@@ -147,6 +151,8 @@ async def update_reservation(reservation_id: int, item: ReservationCreate):
     await reservation.save()
 
     await Notification.create(
+        titre = NotificationTitle.MODIFICATION,
+        type = NotificationType.RESERVATION,
         message=f"La réservation « {reservation.id} » a été modifiée.",
         lu=False,
         etablissement=chambre_.etablissement
@@ -248,6 +254,8 @@ async def annuler_reservation(reservation_id: int):
 
     if etablissement:
         await Notification.create(
+            titre = NotificationTitle.SUPPRESSION,
+            type = NotificationType.RESERVATION,
             message=f"La réservation « {reservation_id} » a été supprimée.",
             lu=False,
             etablissement=etablissement
@@ -360,6 +368,7 @@ async def revenu_par_etablissement(etablissement_id: int):
 
 Reservation_Pydantic = pydantic_model_creator(Reservation)
 
+
 @router.patch("/{reservation_id}")
 async def update_reservation_patch(
     reservation_id: int,
@@ -378,26 +387,29 @@ async def update_reservation_patch(
 
     statut_initial = reservation.status
 
+    # Mise à jour du statut
     reservation.status = item.status
     await reservation.save()
 
+    # Si confirmé -> chambre occupée
     if reservation.status == Status_Reservation.CONFIRMER:
         chambre_.etat = EtatChambre.OCCUPEE
         await chambre_.save()
 
+    # Gestion du stock via articles (JSONField)
     if reservation.articles:
         if statut_initial == Status_Reservation.CONFIRMER and item.status != Status_Reservation.CONFIRMER:
             # Retour stock (annulation)
             for article in reservation.articles:
-                prod_ = await Produit.get_or_none(nom=article.nom)
+                prod_ = await Produit.get_or_none(nom=article["nom"])
                 if prod_:
-                    prod_.quantite += article.quantite
+                    prod_.quantite += article["quantite"]
                     await prod_.save()
 
                     await MouvementStock.create(
                         produit=prod_,
                         personnel=pers,
-                        quantite=article.quantite,
+                        quantite=article["quantite"],
                         type=Type_mouvement_stock.ENTRE,
                         raison=f"Annulation de la commande du client {client_.first_name or ''} {client_.last_name or ''} {client_.phone or ''}"
                     )
@@ -405,25 +417,31 @@ async def update_reservation_patch(
         elif reservation.status == Status_Reservation.CONFIRMER:
             # Sortie stock (confirmation)
             for article in reservation.articles:
-                prod_ = await Produit.get_or_none(nom=article.nom)
+                prod_ = await Produit.get_or_none(nom=article["nom"])
                 if prod_:
-                    if prod_.quantite < article.quantite:
-                        raise HTTPException(status_code=400, detail=f"Stock insuffisant pour le produit {article.nom}")
+                    if prod_.quantite < article["quantite"]:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Stock insuffisant pour le produit {article['nom']}"
+                        )
 
-                    prod_.quantite -= article.quantite
+                    prod_.quantite -= article["quantite"]
                     await prod_.save()
 
                     await MouvementStock.create(
                         produit=prod_,
                         personnel=pers,
-                        quantite=article.quantite,
+                        quantite=article["quantite"],
                         type=Type_mouvement_stock.SORTIE,
                         raison=f"Commande du client {client_.first_name or ''} {client_.last_name or ''} {client_.phone or ''}"
                     )
 
+    # Notification
     etablissement_instance = await chambre_.etablissement
 
     await Notification.create(
+        titre = NotificationTitle.CONFIRMATION,
+        type = NotificationType.RESERVATION,
         message=f"Le status de la réservation « {reservation.id} » a été modifié à « {item.status.value} ».",
         lu=False,
         etablissement=etablissement_instance
@@ -432,10 +450,10 @@ async def update_reservation_patch(
     await notification_manager.send_to_etablissement(
         etablissement_id=chambre_.etablissement_id,
         event="reservation_patch",
-        payload={"message": f"La réservation « {reservation.id} » a été patchée"}
+        payload={"message": f"La réservation « {reservation.id} » a été Confirmer"}
     )
 
-    # Utilisation du modèle Pydantic pour sérialiser la réservation
+    # Sérialisation Pydantic
     reservation_pydantic = await Reservation_Pydantic.from_tortoise_orm(reservation)
 
     return {

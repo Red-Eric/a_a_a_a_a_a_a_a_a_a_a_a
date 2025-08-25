@@ -3,7 +3,6 @@ from enum import Enum
 class Role(str, Enum):
     RECEPTIONNISTE = "Receptionniste"
     TECHNICIEN = "Technicien"
-    MANAGER = "Manager"
+    MANAGER = "Manager Restaurant"
     RH = "RH"
-    CAISSIER = "Caissier"
     CLIENT =  "Client"
